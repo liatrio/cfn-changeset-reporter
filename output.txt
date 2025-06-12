@@ -1,0 +1,62 @@
+# CloudFormation Changeset Report
+
+**Stack:** SC-015451699691-pp-lfi2taor2qupk  
+**Changeset:** change-1  
+**Status:** CREATE_COMPLETE (No reason provided)  
+**Created:** Thu Jun 12 2025 12:25:52 GMT-0700 (Pacific Daylight Time)  
+
+## Changes Summary (5)
+
+- 🔴 **Resources requiring replacement:** 0  
+- 🟡 **Resources modified in-place:** 3  
+- 🟢 **New resources to be created:** 2  
+
+## All Changes
+
+| # | Resource | Type | Action | Replacement |
+|---|----------|------|--------|-------------|
+| 1 | 🟢 BucketPolicy | AWS::S3::BucketPolicy | Add | N/A |
+| 2 | 🟡 EncryptionKeyAlias | AWS::KMS::Alias | Modify | False |
+| 3 | 🟡 EncryptionKey | AWS::KMS::Key | Modify | False |
+| 4 | 🟢 ReplicationIamRole | AWS::IAM::Role | Add | N/A |
+| 5 | 🟡 S3Bucket | AWS::S3::Bucket | Modify | False |
+
+
+## 🟡 Resources Modified In-Place (3)
+
+### 2. EncryptionKeyAlias (AWS::KMS::Alias)
+
+- **Action:** Modify
+- **Replacement:** False
+- **Property Changes:**
+  - TargetKeyId: ResourceAttribute (Properties)
+  - TargetKeyId: DirectModification (Properties)
+
+### 3. EncryptionKey (AWS::KMS::Key)
+
+- **Action:** Modify
+- **Replacement:** False
+- **Property Changes:**
+  - KeyPolicy: DirectModification (Properties)
+
+### 5. S3Bucket (AWS::S3::Bucket)
+
+- **Action:** Modify
+- **Replacement:** False
+- **Property Changes:**
+  - BucketEncryption: DirectModification (Properties)
+  - BucketEncryption: ResourceAttribute (Properties)
+  - LifecycleConfiguration: DirectModification (Properties)
+
+
+
+## 🟢 New Resources (2)
+
+### 1. BucketPolicy (AWS::S3::BucketPolicy)
+
+- **Action:** Add
+
+### 4. ReplicationIamRole (AWS::IAM::Role)
+
+- **Action:** Add
+

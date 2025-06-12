@@ -1,5 +1,5 @@
 name: 'CloudFormation Changeset Reporter'
-description: 'Generates reports from AWS CloudFormation changesets'
+description: 'Generates color-coded reports directly in GitHub Actions logs from AWS CloudFormation changesets with focus on resource replacement impact'
 author: 'Grant Meyer'
 
 inputs:
@@ -17,9 +17,6 @@ inputs:
     description: 'Format of the output report (text, json, markdown)'
     required: false
     default: 'markdown'
-  output-file:
-    description: 'Path to save the report output, if not specified outputs to console'
-    required: false
 
 runs:
   using: 'node16'

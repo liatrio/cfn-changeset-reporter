@@ -1,10 +1,13 @@
 # cfn-changeset-reporter
 
-A GitHub Action to generate reports from AWS CloudFormation changesets.
+A GitHub Action to generate color-coded reports directly in GitHub Actions logs from AWS CloudFormation changesets with focus on resource replacement impact.
 
 ## Features
 
 - Generates detailed reports about CloudFormation changesets
+- Color-codes resources by their impact (🟢 Add, 🟡 Modify, 🔴 Replacement)
+- Groups resources by replacement status for better visibility
+- Highlights which property changes cause resource replacements
 - Supports multiple output formats (Markdown, JSON, Text)
 - Can use the latest changeset or a specified one
 - Provides outputs that can be used by subsequent workflow steps
@@ -41,26 +44,24 @@ jobs:
             --capabilities CAPABILITY_IAM
 
       - name: Report on changeset
+        id: changeset-report
         uses: ./
         with:
           aws-region: us-east-1
           stack-name: my-stack
           changeset-name: pr-${{ github.event.pull_request.number }}
           output-format: markdown
-          output-file: changeset-report.md
           
-      - name: Add report as PR comment
+      - name: Add report as PR comment using action output
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const fs = require('fs');
-            const report = fs.readFileSync('changeset-report.md', 'utf8');
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: report
+              body: ${{ steps.changeset-report.outputs.report }}
             })
 ```
 
@@ -72,7 +73,6 @@ jobs:
 | `stack-name` | Name of the CloudFormation stack | Yes | - |
 | `changeset-name` | Name of the changeset to report on | No | Latest changeset |
 | `output-format` | Format of the output report (text, json, markdown) | No | `markdown` |
-| `output-file` | Path to save the report output, if not specified outputs to console | No | - |
 
 ## Outputs
 
@@ -81,6 +81,26 @@ jobs:
 | `report` | The generated report content |
 | `changeset-name` | Name of the changeset that was analyzed |
 | `changeset-status` | Status of the changeset (CREATE_COMPLETE, CREATE_FAILED, etc.) |
+
+## Sample Report Features
+
+The generated report includes:
+
+### Resource Grouping and Color Coding
+
+Resources are grouped and color-coded by their impact:
+
+- 🔴 **Resources requiring replacement** - Highest impact changes that will create new resources
+- 🟡 **Resources modified in-place** - Medium impact changes that modify existing resources
+- 🟢 **New resources** - Resources being added for the first time
+
+### Replacement Detail Analysis
+
+For resources that require replacement:
+
+- Identifies and highlights the specific property changes causing the replacement
+- Marks properties with `⚠️` when they trigger resource recreation
+- Shows whether replacement is conditional or always required
 
 ## Development
 
