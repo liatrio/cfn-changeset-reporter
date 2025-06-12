@@ -8,13 +8,6 @@ async function run() {
     const stackName = core.getInput('stack-name', { required: true });
     const changesetName = core.getInput('changeset-name');
     const outputFormat = core.getInput('output-format') || 'markdown';
-    // const outputFile = core.getInput('output-file');
-
-    // const awsRegion = "us-east-2";
-    // const stackName = "SC-015451699691-pp-lfi2taor2qupk";
-    // const changesetName = "";
-    // const outputFormat = "markdown";
-    // const outputFile = "output.txt";
 
     // Configure AWS SDK
     AWS.config.update({ region: awsRegion });
@@ -48,25 +41,51 @@ async function run() {
     
     // Generate report based on output format
     let report;
-    switch(outputFormat.toLowerCase()) {
-      case 'json':
-        report = JSON.stringify(changeset, null, 2);
-        break;
-      case 'text':
-        report = generateTextReport(changeset);
-        break;
-      case 'markdown':
-      default:
-        report = generateMarkdownReport(changeset);
-    }
     
-    // Output the report to console
-    core.info('CloudFormation Changeset Report:');
+    report = generateMarkdownReport(changeset);
+    
+    // Output the report to console with ANSI colors
+    core.info('\x1b[1;36mCloudFormation Changeset Report:\x1b[0m');
     
     // For multiline reports, split by newline and log each line separately for better readability in GitHub Actions logs
     const reportLines = report.split('\n');
     reportLines.forEach(line => {
-      core.info(line);
+      // Add ANSI colors based on line content
+      if (line.startsWith('# ')) {
+        core.info(`\x1b[1;36m${line}\x1b[0m`); // Cyan for main title
+      } else if (line.startsWith('## ')) {
+        core.info(`\x1b[1;34m${line}\x1b[0m`); // Blue for section headers
+      } else if (line.startsWith('### ')) {
+        core.info(`\x1b[1;35m${line}\x1b[0m`); // Magenta for resource headers
+      } else if (line.includes('**Resources requiring replacement:**')) {
+        core.info(`\x1b[1;31m${line}\x1b[0m`); // Red for replacement resources
+      } else if (line.includes('**Resources modified in-place:**')) {
+        core.info(`\x1b[1;33m${line}\x1b[0m`); // Yellow for modified resources
+      } else if (line.includes('**New resources to be created:**')) {
+        core.info(`\x1b[1;32m${line}\x1b[0m`); // Green for new resources
+      } else if (line.includes('🔴')) {
+        core.info(`\x1b[31m${line}\x1b[0m`); // Red for red emoji lines
+      } else if (line.includes('🟡')) {
+        core.info(`\x1b[33m${line}\x1b[0m`); // Yellow for yellow emoji lines
+      } else if (line.includes('🟢')) {
+        core.info(`\x1b[32m${line}\x1b[0m`); // Green for green emoji lines
+      } else if (line.includes('⚠️')) {
+        core.info(`\x1b[1;31m${line}\x1b[0m`); // Bold red for warning lines
+      } else if (line.includes('Status:')) {
+        // Color based on status
+        if (line.includes('FAILED')) {
+          core.info(`\x1b[1;31m${line}\x1b[0m`); // Bold red for failed status
+        } else if (line.includes('IN_PROGRESS')) {
+          core.info(`\x1b[1;33m${line}\x1b[0m`); // Bold yellow for in-progress status
+        } else {
+          core.info(`\x1b[1;32m${line}\x1b[0m`); // Bold green for success status
+        }
+      } else if (line.startsWith('|')) {
+        // Table formatting
+        core.info(`\x1b[36m${line}\x1b[0m`); // Cyan for table lines
+      } else {
+        core.info(line);
+      }
     });
     
     // Set output for other actions to use
@@ -79,140 +98,6 @@ async function run() {
   }
 }
 
-function generateTextReport(changeset) {
-  let report = '=== CloudFormation Changeset Report ===\n\n';
-  
-  report += `Stack: ${changeset.StackName}\n`;
-  report += `Changeset: ${changeset.ChangeSetName}\n`;
-  
-  // Add status indicator
-  let statusSymbol = '✓';
-  if (changeset.Status.includes('FAILED')) {
-    statusSymbol = '✗';
-  } else if (changeset.Status.includes('IN_PROGRESS')) {
-    statusSymbol = '⏳';
-  }
-  
-  report += `Status: ${statusSymbol} ${changeset.Status} (${changeset.StatusReason || 'No reason provided'})\n`;
-  report += `Created: ${changeset.CreationTime}\n\n`;
-  
-  const changes = changeset.Changes || [];
-  const totalCount = changes.length;
-  
-  // Group resources by replacement status
-  const replacementGroups = {
-    'RESOURCES REQUIRING REPLACEMENT': [],
-    'RESOURCES MODIFIED IN-PLACE': [],
-    'NEW RESOURCES': []
-  };
-  
-  // Process and categorize each change
-  changes.forEach((change, i) => {
-    const resource = change.ResourceChange;
-    const needsReplacement = resource.Replacement === 'True' || resource.Replacement === 'Conditional';
-    const isAdd = resource.Action === 'Add';
-    
-    if (needsReplacement) {
-      replacementGroups['RESOURCES REQUIRING REPLACEMENT'].push({ index: i+1, resource, change });
-    } else if (isAdd) {
-      replacementGroups['NEW RESOURCES'].push({ index: i+1, resource, change });
-    } else {
-      replacementGroups['RESOURCES MODIFIED IN-PLACE'].push({ index: i+1, resource, change });
-    }
-  });
-  
-  report += `Changes Summary (${totalCount}):\n\n`;
-  report += `* Resources requiring replacement: ${replacementGroups['RESOURCES REQUIRING REPLACEMENT'].length}\n`;
-  report += `* Resources modified in-place: ${replacementGroups['RESOURCES MODIFIED IN-PLACE'].length}\n`;
-  report += `* New resources to be created: ${replacementGroups['NEW RESOURCES'].length}\n\n`;
-  
-  if (totalCount > 0) {
-    // First list resources requiring replacement
-    if (replacementGroups['RESOURCES REQUIRING REPLACEMENT'].length > 0) {
-      report += '=== RESOURCES REQUIRING REPLACEMENT ===\n\n';
-      
-      replacementGroups['RESOURCES REQUIRING REPLACEMENT'].forEach(({ index, resource, change }) => {
-        report += `${index}. ${resource.LogicalResourceId} (${resource.ResourceType})\n`;
-        report += `   Action: ${resource.Action}\n`;
-        report += `   Replacement: ${resource.Replacement}\n`;
-        
-        // Highlight what's causing the replacement
-        report += `   Replacement Reason:\n`;
-        
-        if (resource.Details && resource.Details.length > 0) {
-          const replacementCauses = resource.Details.filter(detail => 
-            detail.Evaluation === 'Dynamic' || 
-            detail.Target.RequiresRecreation === 'Always' ||
-            detail.Target.RequiresRecreation === 'Conditionally'
-          );
-          
-          if (replacementCauses.length > 0) {
-            replacementCauses.forEach(detail => {
-              report += `     - Property '${detail.Target.Name}' requires recreation when changed (${detail.Target.RequiresRecreation})\n`;
-            });
-          } else {
-            report += `     - Implicit replacement due to dependent resource changes\n`;
-          }
-        }
-        
-        if (resource.Details && resource.Details.length > 0) {
-          report += '   All Property Changes:\n';
-          resource.Details.forEach(detail => {
-            const isReplacementCause = detail.Target.RequiresRecreation === 'Always' || 
-                                    detail.Target.RequiresRecreation === 'Conditionally';
-            const marker = isReplacementCause ? '! ' : '- ';
-            report += `     ${marker}${detail.Target.Name}: ${detail.ChangeSource} (${detail.Target.Attribute})\n`;
-          });
-        }
-        
-        report += '\n';
-      });
-    }
-    
-    // List modified resources
-    if (replacementGroups['RESOURCES MODIFIED IN-PLACE'].length > 0) {
-      report += '=== RESOURCES MODIFIED IN-PLACE ===\n\n';
-      
-      replacementGroups['RESOURCES MODIFIED IN-PLACE'].forEach(({ index, resource, change }) => {
-        report += `${index}. ${resource.LogicalResourceId} (${resource.ResourceType})\n`;
-        report += `   Action: ${resource.Action}\n`;
-        report += `   Replacement: ${resource.Replacement || 'N/A'}\n`;
-        
-        if (resource.Details && resource.Details.length > 0) {
-          report += '   Property Changes:\n';
-          resource.Details.forEach(detail => {
-            report += `     - ${detail.Target.Name}: ${detail.ChangeSource} (${detail.Target.Attribute})\n`;
-          });
-        }
-        
-        report += '\n';
-      });
-    }
-    
-    // List new resources
-    if (replacementGroups['NEW RESOURCES'].length > 0) {
-      report += '=== NEW RESOURCES ===\n\n';
-      
-      replacementGroups['NEW RESOURCES'].forEach(({ index, resource, change }) => {
-        report += `${index}. ${resource.LogicalResourceId} (${resource.ResourceType})\n`;
-        report += `   Action: ${resource.Action}\n`;
-        
-        if (resource.Details && resource.Details.length > 0) {
-          report += '   Property Details:\n';
-          resource.Details.forEach(detail => {
-            report += `     - ${detail.Target.Name}: ${detail.ChangeSource} (${detail.Target.Attribute})\n`;
-          });
-        }
-        
-        report += '\n';
-      });
-    }
-  } else {
-    report += 'No changes detected.\n';
-  }
-  
-  return report;
-}
 
 function generateMarkdownReport(changeset) {
   let report = `# ☁️ CloudFormation Changeset Report\n\n`;

@@ -13,10 +13,6 @@ inputs:
   changeset-name:
     description: 'Name of the changeset to report on'
     required: false
-  output-format:
-    description: 'Format of the output report (text, json, markdown)'
-    required: false
-    default: 'markdown'
 
 runs:
   using: 'node16'
