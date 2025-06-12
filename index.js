@@ -80,11 +80,20 @@ async function run() {
 }
 
 function generateTextReport(changeset) {
-  let report = '--- CloudFormation Changeset Report ---\n\n';
+  let report = '=== CloudFormation Changeset Report ===\n\n';
   
   report += `Stack: ${changeset.StackName}\n`;
   report += `Changeset: ${changeset.ChangeSetName}\n`;
-  report += `Status: ${changeset.Status} (${changeset.StatusReason || 'No reason provided'})\n`;
+  
+  // Add status indicator
+  let statusSymbol = '✓';
+  if (changeset.Status.includes('FAILED')) {
+    statusSymbol = '✗';
+  } else if (changeset.Status.includes('IN_PROGRESS')) {
+    statusSymbol = '⏳';
+  }
+  
+  report += `Status: ${statusSymbol} ${changeset.Status} (${changeset.StatusReason || 'No reason provided'})\n`;
   report += `Created: ${changeset.CreationTime}\n\n`;
   
   const changes = changeset.Changes || [];
@@ -206,12 +215,26 @@ function generateTextReport(changeset) {
 }
 
 function generateMarkdownReport(changeset) {
-  let report = `# CloudFormation Changeset Report\n\n`;
+  let report = `# ☁️ CloudFormation Changeset Report\n\n`;
   
-  report += `**Stack:** ${changeset.StackName}  \n`;
-  report += `**Changeset:** ${changeset.ChangeSetName}  \n`;
-  report += `**Status:** ${changeset.Status} (${changeset.StatusReason || 'No reason provided'})  \n`;
+  // Add a horizontal divider and header section with better formatting
+  report += `## 📋 Changeset Information\n\n`;
+  report += `**Stack:** \`${changeset.StackName}\`  \n`;
+  report += `**Changeset:** \`${changeset.ChangeSetName}\`  \n`;
+  
+  // Add a color indicator for changeset status
+  let statusEmoji = '✅';
+  if (changeset.Status.includes('FAILED')) {
+    statusEmoji = '❌';
+  } else if (changeset.Status.includes('IN_PROGRESS')) {
+    statusEmoji = '⏳';
+  }
+  
+  report += `**Status:** ${statusEmoji} ${changeset.Status} (${changeset.StatusReason || 'No reason provided'})  \n`;
   report += `**Created:** ${changeset.CreationTime}  \n\n`;
+  
+  // Add a horizontal line for visual separation
+  report += `---\n\n`;
   
   const changes = changeset.Changes || [];
   const totalCount = changes.length;
@@ -359,4 +382,10 @@ function generateMarkdownReport(changeset) {
   return report;
 }
 
-run();
+// Export for testing
+module.exports = { run };
+
+// Run if this is the main module
+if (require.main === module) {
+  run();
+}
