@@ -1,0 +1,30 @@
+name: 'CloudFormation Changeset Reporter'
+description: 'Generates reports from AWS CloudFormation changesets'
+author: 'Grant Meyer'
+
+inputs:
+  aws-region:
+    description: 'AWS region to connect to'
+    required: true
+    default: 'us-east-1'
+  stack-name:
+    description: 'Name of the CloudFormation stack'
+    required: true
+  changeset-name:
+    description: 'Name of the changeset to report on'
+    required: false
+  output-format:
+    description: 'Format of the output report (text, json, markdown)'
+    required: false
+    default: 'markdown'
+  output-file:
+    description: 'Path to save the report output, if not specified outputs to console'
+    required: false
+
+runs:
+  using: 'node16'
+  main: 'dist/index.js'
+
+branding:
+  icon: 'file-text'
+  color: 'orange'
