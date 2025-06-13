@@ -62,21 +62,6 @@ async function run() {
 
 function generateMarkdownReport(changeset) {
   let report = `CloudFormation Changeset Report\n\n`;
-
-  
-  // Add a color indicator for changeset status
-  // let statusEmoji = '✅';
-  // if (changeset.Status.includes('FAILED')) {
-  //   statusEmoji = '❌';
-  // } else if (changeset.Status.includes('IN_PROGRESS')) {
-  //   statusEmoji = '⏳';
-  // }
-  
-  // report += `**Status:** ${statusEmoji} ${changeset.Status} (${changeset.StatusReason || 'No reason provided'})  \n`;
-  // report += `**Created:** ${changeset.CreationTime}  \n\n`;
-  
-  // Add a horizontal line for visual separation
-  // report += `---\n\n`;
   
   const changes = changeset.Changes || [];
   const totalCount = changes.length;
