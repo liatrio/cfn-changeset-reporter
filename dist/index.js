@@ -91,7 +91,8 @@ function generateMarkdownReport(changeset) {
   const replacementGroups = {
     'Will be replaced': [],
     'Modified without replacement': [],
-    'New resources': []
+    'New resources': [],
+    'Removed resources': []
   };
   
   // Process and categorize each change
@@ -99,10 +100,14 @@ function generateMarkdownReport(changeset) {
     const resource = change.ResourceChange;
     const needsReplacement = resource.Replacement === 'True' || resource.Replacement === 'Conditional';
     const isAdd = resource.Action === 'Add';
+    const isRemove = resource.Action === 'Remove';
     
     // Determine color based on action and replacement
     let color;
-    if (needsReplacement) {
+    if (isRemove) {
+      color = 'darkred';
+      replacementGroups['Removed resources'].push({ index: i+1, resource, change });
+    } else if (needsReplacement) {
       color = 'red';
       replacementGroups['Will be replaced'].push({ index: i+1, resource, change });
     } else if (isAdd) {
@@ -117,9 +122,10 @@ function generateMarkdownReport(changeset) {
     resource._color = color;
   });
   
-  report += `\x1b[97m\x1b[1m── Changes Summary ── (${totalCount}) ─┐\x1b[0m\n\n`;
+  report += `\x1b[97m\x1b[1m── Changes Summary (${totalCount}) ──\x1b[0m\n\n`;
   
   // Create summary with counts
+  report += `⛔ \x1b[31mResources to be removed:\x1b[0m ${replacementGroups['Removed resources'].length}  \n`;
   report += `🔴 \x1b[91mResources requiring replacement:\x1b[0m ${replacementGroups['Will be replaced'].length}  \n`;
   report += `🟡 \x1b[93mResources modified in-place:\x1b[0m ${replacementGroups['Modified without replacement'].length}  \n`;
   report += `🟢 \x1b[92mNew resources to be created:\x1b[0m ${replacementGroups['New resources'].length}  \n\n`;
@@ -168,15 +174,26 @@ function generateMarkdownReport(changeset) {
       const resource = change.ResourceChange;
       const color = resource._color;
       let colorEmoji = '⚪';
+      let textColorCode = '';
       
-      if (color === 'red') colorEmoji = '🔴';
-      else if (color === 'yellow') colorEmoji = '🟡';
-      else if (color === 'green') colorEmoji = '🟢';
+      if (color === 'darkred') {
+        colorEmoji = '⛔';
+        textColorCode = '\x1b[31m'; // Darker red for removals
+      } else if (color === 'red') {
+        colorEmoji = '🔴'; 
+        textColorCode = '\x1b[91m'; // Bright red for replacements
+      } else if (color === 'yellow') {
+        colorEmoji = '🟡';
+        textColorCode = '\x1b[93m';
+      } else if (color === 'green') {
+        colorEmoji = '🟢';
+        textColorCode = '\x1b[92m';
+      }
       
       // Format each cell with proper width (fixed index column with exactly one space on each side)
-      const resourceCell = `${colorEmoji} ${resource.LogicalResourceId}`.padEnd(colWidths['Resource']);
+      const resourceCell = `${colorEmoji} ${textColorCode}${resource.LogicalResourceId}\x1b[0m`.padEnd(colWidths['Resource'] + 9); // +9 to account for color code chars
       const typeCell = resource.ResourceType.padEnd(colWidths['Type']);
-      const actionCell = resource.Action.padEnd(colWidths['Action']);
+      const actionCell = `${textColorCode}${resource.Action}\x1b[0m`.padEnd(colWidths['Action'] + 9);
       const replacementCell = (resource.Replacement || 'N/A').padEnd(colWidths['Replacement']);
       
       report += `\x1b[97m| ${i+1} |\x1b[0m ${resourceCell} \x1b[97m|\x1b[0m ${typeCell} \x1b[97m|\x1b[0m ${actionCell} \x1b[97m|\x1b[0m ${replacementCell} \x1b[97m|\x1b[0m\n`;
@@ -261,6 +278,27 @@ function generateMarkdownReport(changeset) {
           });
         }
         
+        report += '\n';
+      });
+    }
+    
+    // Removed resources section
+    if (replacementGroups['Removed resources'].length > 0) {
+      report += `\n\n\x1b[31m\x1b[1m⛔ Resources Being Removed\x1b[0m (${replacementGroups['Removed resources'].length})\n\n`;
+      
+      replacementGroups['Removed resources'].forEach(({ index, resource, change }) => {
+        report += `   \x1b[1m${index}.\x1b[0m \x1b[31m${resource.LogicalResourceId}\x1b[0m (\x1b[90m${resource.ResourceType}\x1b[0m)\n`;
+        report += `     • \x1b[97mAction:\x1b[0m \x1b[31m${resource.Action}\x1b[0m\n`;
+        
+        // For removed resources, show any available details
+        if (resource.Details && resource.Details.length > 0) {
+          report += `     • \x1b[97mResource Details:\x1b[0m\n`;
+          resource.Details.forEach(detail => {
+            report += `       - \x1b[31m${detail.Target.Name}:\x1b[0m ${detail.ChangeSource} (\x1b[90m${detail.Target.Attribute}\x1b[0m)\n`;
+          });
+        }
+        
+        report += `     • \x1b[97m\x1b[1m⚠️ Warning:\x1b[0m This resource will be \x1b[31mPERMANENTLY DELETED\x1b[0m\n`;
         report += '\n';
       });
     }
