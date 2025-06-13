@@ -226,12 +226,12 @@ function generateMarkdownReport(changeset) {
     
     // Modified resources section
     if (replacementGroups['Modified without replacement'].length > 0) {
-      report += `\n\n## 🟡 Resources Modified In-Place (${replacementGroups['Modified without replacement'].length})\n\n`;
+      report += `\n\n🟡 \x1b[93m\x1b[1mResources Modified In-Place\x1b[0m (${replacementGroups['Modified without replacement'].length})\n\n`;
       
       replacementGroups['Modified without replacement'].forEach(({ index, resource, change }) => {
-        report += `### ${index}. ${resource.LogicalResourceId} (${resource.ResourceType})\n\n`;
-        report += `- **Action:** ${resource.Action}\n`;
-        report += `- **Replacement:** ${resource.Replacement || 'N/A'}\n`;
+        report += `   ${index}. ${resource.LogicalResourceId} (${resource.ResourceType})\n\n`;
+        report += `     - Action: \x1b[1m${resource.Action}\x1b[0m\n`;
+        report += `     - Replacement: ${resource.Replacement || 'N/A'}\n`;
         
         if (resource.Details && resource.Details.length > 0) {
           report += '- **Property Changes:**\n';
