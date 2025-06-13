@@ -129,7 +129,7 @@ function generateMarkdownReport(changeset) {
   
   // Create a complete table with all changes
   if (totalCount > 0) {
-    report += `\x1b[97mAll Changes\x1b[0m\n\n`;
+    report += `\x1b[41mAll Changes\x1b[0m\n\n`;
     report += `| # | Resource | Type | Action | Replacement |\n`;
     report += `|---|----------|------|--------|-------------|\n`;
     
