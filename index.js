@@ -1,23 +1,32 @@
 const core = require('@actions/core');
 const AWS = require('aws-sdk');
 
+const { CloudFormation } = require('@aws-sdk/client-cloudformation');
+
 async function run() {
   try {
     // Get inputs from action
-    const awsRegion = core.getInput('aws-region', { required: true });
-    const stackName = core.getInput('stack-name', { required: true });
-    const changesetName = core.getInput('changeset-name');
-    const outputFormat = core.getInput('output-format') || 'markdown';
+    // const awsRegion = core.getInput('aws-region', { required: true });
+    // const stackName = core.getInput('stack-name', { required: true });
+    // const changesetName = core.getInput('changeset-name');
 
+    const awsRegion = "us-east-2";
+    const stackName = "SC-015451699691-pp-lfi2taor2qupk";
+    const changesetName = "change-1";
     // Configure AWS SDK
+    // JS SDK v3 does not support global configuration.
+    // Codemod has attempted to pass values to each service client in this file.
+    // You may need to update clients outside of this file, if they use global config.
     AWS.config.update({ region: awsRegion });
-    const cloudformation = new AWS.CloudFormation();
+    const cloudformation = new CloudFormation({
+      region: awsRegion
+    });
 
     // If changeset name is not specified, get the latest one for the stack
     let actualChangesetName = changesetName;
     if (!actualChangesetName) {
       core.info('No changeset name provided, finding the latest one...');
-      const listResult = await cloudformation.listChangeSets({ StackName: stackName }).promise();
+      const listResult = await cloudformation.listChangeSets({ StackName: stackName });
       
       if (listResult.Summaries && listResult.Summaries.length > 0) {
         // Sort by creation time, get the most recent
@@ -37,57 +46,18 @@ async function run() {
       StackName: stackName
     };
     
-    const changeset = await cloudformation.describeChangeSet(params).promise();
+    const changeset = await cloudformation.describeChangeSet(params);
     
     // Generate report based on output format
     let report;
     
     report = generateMarkdownReport(changeset);
     
-    // Output the report to console with ANSI colors
-    core.info('\x1b[1;36mCloudFormation Changeset Report:\x1b[0m');
-    
-    // For multiline reports, split by newline and log each line separately for better readability in GitHub Actions logs
+    // Print the report line by line for better readability in GitHub Actions logs
     const reportLines = report.split('\n');
     reportLines.forEach(line => {
-      // Add ANSI colors based on line content
-      if (line.startsWith('# ')) {
-        core.info(`\x1b[1;36m${line}\x1b[0m`); // Cyan for main title
-      } else if (line.startsWith('## ')) {
-        core.info(`\x1b[1;34m${line}\x1b[0m`); // Blue for section headers
-      } else if (line.startsWith('### ')) {
-        core.info(`\x1b[1;35m${line}\x1b[0m`); // Magenta for resource headers
-      } else if (line.includes('**Resources requiring replacement:**')) {
-        core.info(`\x1b[1;31m${line}\x1b[0m`); // Red for replacement resources
-      } else if (line.includes('**Resources modified in-place:**')) {
-        core.info(`\x1b[1;33m${line}\x1b[0m`); // Yellow for modified resources
-      } else if (line.includes('**New resources to be created:**')) {
-        core.info(`\x1b[1;32m${line}\x1b[0m`); // Green for new resources
-      } else if (line.includes('🔴')) {
-        core.info(`\x1b[31m${line}\x1b[0m`); // Red for red emoji lines
-      } else if (line.includes('🟡')) {
-        core.info(`\x1b[33m${line}\x1b[0m`); // Yellow for yellow emoji lines
-      } else if (line.includes('🟢')) {
-        core.info(`\x1b[32m${line}\x1b[0m`); // Green for green emoji lines
-      } else if (line.includes('⚠️')) {
-        core.info(`\x1b[1;31m${line}\x1b[0m`); // Bold red for warning lines
-      } else if (line.includes('Status:')) {
-        // Color based on status
-        if (line.includes('FAILED')) {
-          core.info(`\x1b[1;31m${line}\x1b[0m`); // Bold red for failed status
-        } else if (line.includes('IN_PROGRESS')) {
-          core.info(`\x1b[1;33m${line}\x1b[0m`); // Bold yellow for in-progress status
-        } else {
-          core.info(`\x1b[1;32m${line}\x1b[0m`); // Bold green for success status
-        }
-      } else if (line.startsWith('|')) {
-        // Table formatting
-        core.info(`\x1b[36m${line}\x1b[0m`); // Cyan for table lines
-      } else {
-        core.info(line);
-      }
+      core.info(line);
     });
-    
     // Set output for other actions to use
     core.setOutput('report', report);
     core.setOutput('changeset-name', actualChangesetName);
@@ -100,26 +70,22 @@ async function run() {
 
 
 function generateMarkdownReport(changeset) {
-  let report = `# ☁️ CloudFormation Changeset Report\n\n`;
-  
-  // Add a horizontal divider and header section with better formatting
-  report += `## 📋 Changeset Information\n\n`;
-  report += `**Stack:** \`${changeset.StackName}\`  \n`;
-  report += `**Changeset:** \`${changeset.ChangeSetName}\`  \n`;
+  let report = `CloudFormation Changeset Report\n\n`;
+
   
   // Add a color indicator for changeset status
-  let statusEmoji = '✅';
-  if (changeset.Status.includes('FAILED')) {
-    statusEmoji = '❌';
-  } else if (changeset.Status.includes('IN_PROGRESS')) {
-    statusEmoji = '⏳';
-  }
+  // let statusEmoji = '✅';
+  // if (changeset.Status.includes('FAILED')) {
+  //   statusEmoji = '❌';
+  // } else if (changeset.Status.includes('IN_PROGRESS')) {
+  //   statusEmoji = '⏳';
+  // }
   
-  report += `**Status:** ${statusEmoji} ${changeset.Status} (${changeset.StatusReason || 'No reason provided'})  \n`;
-  report += `**Created:** ${changeset.CreationTime}  \n\n`;
+  // report += `**Status:** ${statusEmoji} ${changeset.Status} (${changeset.StatusReason || 'No reason provided'})  \n`;
+  // report += `**Created:** ${changeset.CreationTime}  \n\n`;
   
   // Add a horizontal line for visual separation
-  report += `---\n\n`;
+  // report += `---\n\n`;
   
   const changes = changeset.Changes || [];
   const totalCount = changes.length;
@@ -154,16 +120,16 @@ function generateMarkdownReport(changeset) {
     resource._color = color;
   });
   
-  report += `## Changes Summary (${totalCount})\n\n`;
+  report += `Changes Summary (${totalCount})\n\n`;
   
   // Create summary with counts
-  report += `- 🔴 **Resources requiring replacement:** ${replacementGroups['Will be replaced'].length}  \n`;
-  report += `- 🟡 **Resources modified in-place:** ${replacementGroups['Modified without replacement'].length}  \n`;
-  report += `- 🟢 **New resources to be created:** ${replacementGroups['New resources'].length}  \n\n`;
+  report += `- 🔴 \x1b[31mResources requiring replacement:\x1b[0m ${replacementGroups['Will be replaced'].length}  \n`;
+  report += `- 🟡 \x1b[33mResources modified in-place:\x1b[0m ${replacementGroups['Modified without replacement'].length}  \n`;
+  report += `- 🟢 \x1b[32mNew resources to be created:\x1b[0m ${replacementGroups['New resources'].length}  \n\n`;
   
   // Create a complete table with all changes
   if (totalCount > 0) {
-    report += `## All Changes\n\n`;
+    report += `All Changes\n\n`;
     report += `| # | Resource | Type | Action | Replacement |\n`;
     report += `|---|----------|------|--------|-------------|\n`;
     
