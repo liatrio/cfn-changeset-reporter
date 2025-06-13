@@ -117,7 +117,7 @@ function generateMarkdownReport(changeset) {
     resource._color = color;
   });
   
-  report += `\x1b[97m\x1b[1mChanges Summary (${totalCount})\x1b[0m\n\n`;
+  report += `\x1b[97m\x1b[1m┌─ Changes Summary (${totalCount}) ─┐\x1b[0m\n\n`;
   
   // Create summary with counts
   report += `🔴 \x1b[91mResources requiring replacement:\x1b[0m ${replacementGroups['Will be replaced'].length}  \n`;
@@ -126,7 +126,7 @@ function generateMarkdownReport(changeset) {
   
   // Create a complete table with all changes
   if (totalCount > 0) {
-    report += `\x1b[97m\x1b[1mAll Changes\x1b[0m\n\n`;
+    report += `\x1b[97m\x1b[1m┌─ All Changes ─┐\x1b[0m\n\n`;
     
     // Calculate the maximum width for each column based on content
     const colWidths = {
@@ -184,15 +184,15 @@ function generateMarkdownReport(changeset) {
     
     // Create detailed sections by replacement type
     if (replacementGroups['Will be replaced'].length > 0) {
-      report += `\n\n## 🔴 Resources Requiring Replacement (${replacementGroups['Will be replaced'].length})\n\n`;
+      report += `\n\n\x1b[91m\x1b[1m🔴 Resources Requiring Replacement\x1b[0m (${replacementGroups['Will be replaced'].length})\n\n`;
       
       replacementGroups['Will be replaced'].forEach(({ index, resource, change }) => {
-        report += `### ${index}. ${resource.LogicalResourceId} (${resource.ResourceType})\n\n`;
-        report += `- **Action:** ${resource.Action}\n`;
-        report += `- **Replacement:** ${resource.Replacement}\n`;
+        report += `   \x1b[1m${index}.\x1b[0m \x1b[91m${resource.LogicalResourceId}\x1b[0m (\x1b[90m${resource.ResourceType}\x1b[0m)\n\n`;
+        report += `     • \x1b[97mAction:\x1b[0m \x1b[91m${resource.Action}\x1b[0m\n`;
+        report += `     • \x1b[97mReplacement:\x1b[0m \x1b[91m${resource.Replacement}\x1b[0m\n`;
         
         // Highlight what's causing the replacement
-        report += `- **⚠️ Replacement Reason:**\n`;
+        report += `     • \x1b[1m\x1b[97m⚠️ Replacement Reason:\x1b[0m\n`;
         
         if (resource.Details && resource.Details.length > 0) {
           const replacementCauses = resource.Details.filter(detail => 
@@ -203,20 +203,21 @@ function generateMarkdownReport(changeset) {
           
           if (replacementCauses.length > 0) {
             replacementCauses.forEach(detail => {
-              report += `  - Property \`${detail.Target.Name}\` requires recreation when changed (${detail.Target.RequiresRecreation})\n`;
+              report += `       - Property \x1b[97m\`${detail.Target.Name}\`\x1b[0m requires recreation \x1b[91m(${detail.Target.RequiresRecreation})\x1b[0m\n`;
             });
           } else {
-            report += `  - Implicit replacement due to dependent resource changes\n`;
+            report += `       - \x1b[91mImplicit replacement due to dependent resource changes\x1b[0m\n`;
           }
         }
         
         if (resource.Details && resource.Details.length > 0) {
-          report += '\n- **All Property Changes:**\n';
+          report += `\n     • \x1b[97mAll Property Changes:\x1b[0m\n`;
           resource.Details.forEach(detail => {
             const isReplacementCause = detail.Target.RequiresRecreation === 'Always' || 
                                      detail.Target.RequiresRecreation === 'Conditionally';
             const prefix = isReplacementCause ? '⚠️ ' : '';
-            report += `  - ${prefix}${detail.Target.Name}: ${detail.ChangeSource} (${detail.Target.Attribute})\n`;
+            const nameColor = isReplacementCause ? '\x1b[91m' : '\x1b[97m';
+            report += `       - ${prefix}${nameColor}${detail.Target.Name}:\x1b[0m ${detail.ChangeSource} (\x1b[90m${detail.Target.Attribute}\x1b[0m)\n`;
           });
         }
         
@@ -226,17 +227,17 @@ function generateMarkdownReport(changeset) {
     
     // Modified resources section
     if (replacementGroups['Modified without replacement'].length > 0) {
-      report += `\n\n🟡 \x1b[93m\x1b[1mResources Modified In-Place\x1b[0m (${replacementGroups['Modified without replacement'].length})\n\n`;
+      report += `\n\n\x1b[93m\x1b[1m🟡 Resources Modified In-Place\x1b[0m (${replacementGroups['Modified without replacement'].length})\n\n`;
       
       replacementGroups['Modified without replacement'].forEach(({ index, resource, change }) => {
-        report += `   ${index}. ${resource.LogicalResourceId} (${resource.ResourceType})\n\n`;
-        report += `     - Action: \x1b[1m${resource.Action}\x1b[0m\n`;
-        report += `     - Replacement: ${resource.Replacement || 'N/A'}\n`;
+        report += `   \x1b[1m${index}.\x1b[0m \x1b[93m${resource.LogicalResourceId}\x1b[0m (\x1b[90m${resource.ResourceType}\x1b[0m)\n\n`;
+        report += `     • \x1b[97mAction:\x1b[0m \x1b[93m${resource.Action}\x1b[0m\n`;
+        report += `     • \x1b[97mReplacement:\x1b[0m ${resource.Replacement || 'N/A'}\n`;
         
         if (resource.Details && resource.Details.length > 0) {
-          report += '- **Property Changes:**\n';
+          report += `     • \x1b[97mProperty Changes:\x1b[0m\n`;
           resource.Details.forEach(detail => {
-            report += `  - ${detail.Target.Name}: ${detail.ChangeSource} (${detail.Target.Attribute})\n`;
+            report += `       - \x1b[93m${detail.Target.Name}:\x1b[0m ${detail.ChangeSource} (\x1b[90m${detail.Target.Attribute}\x1b[0m)\n`;
           });
         }
         
@@ -246,17 +247,17 @@ function generateMarkdownReport(changeset) {
     
     // New resources section
     if (replacementGroups['New resources'].length > 0) {
-      report += `\n\n## 🟢 New Resources (${replacementGroups['New resources'].length})\n\n`;
+      report += `\n\n\x1b[92m\x1b[1m🟢 New Resources\x1b[0m (${replacementGroups['New resources'].length})\n\n`;
       
       replacementGroups['New resources'].forEach(({ index, resource, change }) => {
-        report += `### ${index}. ${resource.LogicalResourceId} (${resource.ResourceType})\n\n`;
-        report += `- **Action:** ${resource.Action}\n`;
+        report += `   \x1b[1m${index}.\x1b[0m \x1b[92m${resource.LogicalResourceId}\x1b[0m (\x1b[90m${resource.ResourceType}\x1b[0m)\n\n`;
+        report += `     • \x1b[97mAction:\x1b[0m \x1b[92m${resource.Action}\x1b[0m\n`;
         
         // For new resources, we might not have details but can include them if available
         if (resource.Details && resource.Details.length > 0) {
-          report += '- **Property Details:**\n';
+          report += `     • \x1b[97mProperty Details:\x1b[0m\n`;
           resource.Details.forEach(detail => {
-            report += `  - ${detail.Target.Name}: ${detail.ChangeSource} (${detail.Target.Attribute})\n`;
+            report += `       - \x1b[92m${detail.Target.Name}:\x1b[0m ${detail.ChangeSource} (\x1b[90m${detail.Target.Attribute}\x1b[0m)\n`;
           });
         }
         
