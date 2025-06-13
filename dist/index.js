@@ -117,7 +117,7 @@ function generateMarkdownReport(changeset) {
     resource._color = color;
   });
   
-  report += `\x1b[97m\x1b[1m┌─ Changes Summary (${totalCount}) ─┐\x1b[0m\n\n`;
+  report += `\x1b[97m\x1b[1m── Changes Summary ── (${totalCount}) ─┐\x1b[0m\n\n`;
   
   // Create summary with counts
   report += `🔴 \x1b[91mResources requiring replacement:\x1b[0m ${replacementGroups['Will be replaced'].length}  \n`;
@@ -126,7 +126,7 @@ function generateMarkdownReport(changeset) {
   
   // Create a complete table with all changes
   if (totalCount > 0) {
-    report += `\x1b[97m\x1b[1m┌─ All Changes ─┐\x1b[0m\n\n`;
+    report += `\x1b[97m\x1b[1m── All Changes ──\x1b[0m\n\n`;
     
     // Calculate the maximum width for each column based on content
     const colWidths = {
