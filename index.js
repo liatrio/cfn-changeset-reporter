@@ -120,16 +120,16 @@ function generateMarkdownReport(changeset) {
     resource._color = color;
   });
   
-  report += `\x1b[1mChanges Summary (${totalCount})\x1b\n\n`;
+  report += `\x1b[97mChanges Summary (${totalCount})\x1b[0m\n\n`;
   
   // Create summary with counts
-  report += `🔴 \x1b[31mResources requiring replacement:\x1b[0m ${replacementGroups['Will be replaced'].length}  \n`;
-  report += `🟡 \x1b[33mResources modified in-place:\x1b[0m ${replacementGroups['Modified without replacement'].length}  \n`;
-  report += `🟢 \x1b[32mNew resources to be created:\x1b[0m ${replacementGroups['New resources'].length}  \n\n`;
+  report += `🔴 \x1b[91mResources requiring replacement:\x1b[0m ${replacementGroups['Will be replaced'].length}  \n`;
+  report += `🟡 \x1b[93mResources modified in-place:\x1b[0m ${replacementGroups['Modified without replacement'].length}  \n`;
+  report += `🟢 \x1b[92mNew resources to be created:\x1b[0m ${replacementGroups['New resources'].length}  \n\n`;
   
   // Create a complete table with all changes
   if (totalCount > 0) {
-    report += `\x1b[1mAll Changes\x1b\n\n`;
+    report += `\x1b[97mAll Changes\x1b[0m\n\n`;
     report += `| # | Resource | Type | Action | Replacement |\n`;
     report += `|---|----------|------|--------|-------------|\n`;
     
