@@ -8,9 +8,10 @@ A GitHub Action to generate color-coded reports directly in GitHub Actions logs 
 - Color-codes resources by their impact (🟢 Add, 🟡 Modify, 🔴 Replacement)
 - Groups resources by replacement status for better visibility
 - Highlights which property changes cause resource replacements
-- Supports multiple output formats (Markdown, JSON, Text)
+- Outputs directly to GitHub Actions console with rich formatting
 - Can use the latest changeset or a specified one
 - Provides outputs that can be used by subsequent workflow steps
+- Dynamic table formatting that automatically adjusts column widths based on content
 
 ## Usage
 
@@ -50,7 +51,6 @@ jobs:
           aws-region: us-east-1
           stack-name: my-stack
           changeset-name: pr-${{ github.event.pull_request.number }}
-          output-format: markdown
           
       - name: Add report as PR comment using action output
         uses: actions/github-script@v6
@@ -72,7 +72,6 @@ jobs:
 | `aws-region` | AWS region to connect to | Yes | `us-east-1` |
 | `stack-name` | Name of the CloudFormation stack | Yes | - |
 | `changeset-name` | Name of the changeset to report on | No | Latest changeset |
-| `output-format` | Format of the output report (text, json, markdown) | No | `markdown` |
 
 ## Outputs
 
@@ -105,9 +104,11 @@ For resources that require replacement:
 ## Development
 
 ### Prerequisites
+
 - Node.js 16+
 
 ### Setup
+
 ```bash
 npm install
 npm run build

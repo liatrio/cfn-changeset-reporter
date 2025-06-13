@@ -133,41 +133,38 @@ function generateMarkdownReport(changeset) {
     
     // Calculate the maximum width for each column based on content
     const colWidths = {
-      '#': 2, // minimum width for index column
       'Resource': 'Resource'.length,
       'Type': 'Type'.length,
       'Action': 'Action'.length,
       'Replacement': 'Replacement'.length
     };
     
-    // Check all rows to determine max widths
+    // Check all rows to determine max widths (except # which is fixed)
     changes.forEach((change, i) => {
       const resource = change.ResourceChange;
-      const indexWidth = String(i+1).length;
-      const resourceWidth = resource.LogicalResourceId.length;
+      const resourceWidth = resource.LogicalResourceId.length + 2; // +2 for the emoji and space
       const typeWidth = resource.ResourceType.length;
       const actionWidth = resource.Action.length;
       const replacementWidth = (resource.Replacement || 'N/A').length;
       
       // Update max widths
-      colWidths['#'] = Math.max(colWidths['#'], indexWidth);
       colWidths['Resource'] = Math.max(colWidths['Resource'], resourceWidth);
       colWidths['Type'] = Math.max(colWidths['Type'], typeWidth);
       colWidths['Action'] = Math.max(colWidths['Action'], actionWidth);
       colWidths['Replacement'] = Math.max(colWidths['Replacement'], replacementWidth);
     });
     
-    // Extra padding for each column
+    // Add extra padding for each column
     const padding = 2;
     Object.keys(colWidths).forEach(key => {
       colWidths[key] += padding;
     });
     
-    // Create header row with appropriate widths
-    report += `\x1b[97m| ${'#'.padEnd(colWidths['#'])} | ${'Resource'.padEnd(colWidths['Resource'])} | ${'Type'.padEnd(colWidths['Type'])} | ${'Action'.padEnd(colWidths['Action'])} | ${'Replacement'.padEnd(colWidths['Replacement'])} |\x1b[0m\n`;
+    // Create header row with appropriate widths - fixed index column with exactly one space on each side
+    report += `\x1b[97m| # | ${'Resource'.padEnd(colWidths['Resource'])} | ${'Type'.padEnd(colWidths['Type'])} | ${'Action'.padEnd(colWidths['Action'])} | ${'Replacement'.padEnd(colWidths['Replacement'])} |\x1b[0m\n`;
     
-    // Create separator row
-    report += `\x1b[97m| ${'-'.repeat(colWidths['#'])} | ${'-'.repeat(colWidths['Resource'])} | ${'-'.repeat(colWidths['Type'])} | ${'-'.repeat(colWidths['Action'])} | ${'-'.repeat(colWidths['Replacement'])} |\x1b[0m\n`;
+    // Create separator row (4 dashes for index including the spaces)
+    report += `\x1b[97m| - | ${'-'.repeat(colWidths['Resource'])} | ${'-'.repeat(colWidths['Type'])} | ${'-'.repeat(colWidths['Action'])} | ${'-'.repeat(colWidths['Replacement'])} |\x1b[0m\n`;
     
     // Create data rows with appropriate widths
     changes.forEach((change, i) => {
@@ -179,14 +176,13 @@ function generateMarkdownReport(changeset) {
       else if (color === 'yellow') colorEmoji = '🟡';
       else if (color === 'green') colorEmoji = '🟢';
       
-      // Format each cell with proper width
-      const indexCell = String(i+1).padEnd(colWidths['#']);
+      // Format each cell with proper width (fixed index column with exactly one space on each side)
       const resourceCell = `${colorEmoji} ${resource.LogicalResourceId}`.padEnd(colWidths['Resource']);
       const typeCell = resource.ResourceType.padEnd(colWidths['Type']);
       const actionCell = resource.Action.padEnd(colWidths['Action']);
       const replacementCell = (resource.Replacement || 'N/A').padEnd(colWidths['Replacement']);
       
-      report += `\x1b[97m| ${indexCell} |\x1b[0m ${resourceCell} \x1b[97m|\x1b[0m ${typeCell} \x1b[97m|\x1b[0m ${actionCell} \x1b[97m|\x1b[0m ${replacementCell} \x1b[97m|\x1b[0m\n`;
+      report += `\x1b[97m| ${i+1} |\x1b[0m ${resourceCell} \x1b[97m|\x1b[0m ${typeCell} \x1b[97m|\x1b[0m ${actionCell} \x1b[97m|\x1b[0m ${replacementCell} \x1b[97m|\x1b[0m\n`;
     });
     
     // Create detailed sections by replacement type
