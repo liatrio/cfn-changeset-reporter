@@ -3,50 +3,104 @@ const core = require('@actions/core');
 // Mock the @actions/core module
 jest.mock('@actions/core');
 
-// Mock the AWS SDK
-jest.mock('aws-sdk', () => {
-  const mockDescribeChangeSet = jest.fn().mockReturnValue({
-    promise: jest.fn().mockResolvedValue({
-      StackName: 'test-stack',
-      ChangeSetName: 'test-changeset',
-      Status: 'CREATE_COMPLETE',
-      CreationTime: '2023-01-01T00:00:00.000Z',
-      Changes: [
-        {
-          ResourceChange: {
-            LogicalResourceId: 'MyResource',
-            ResourceType: 'AWS::S3::Bucket',
-            Action: 'Add',
-            Replacement: 'False'
-          }
+// Mock AWS SDK v3
+jest.mock('@aws-sdk/client-cloudformation', () => {
+  // Create a mock changeset response with all types of resources
+  const mockChangesetResponse = {
+    StackName: 'test-stack',
+    ChangeSetName: 'test-changeset',
+    Status: 'CREATE_COMPLETE',
+    CreationTime: '2023-01-01T00:00:00.000Z',
+    Changes: [
+      {
+        ResourceChange: {
+          LogicalResourceId: 'MyNewResource',
+          ResourceType: 'AWS::S3::Bucket',
+          Action: 'Add',
+          Replacement: 'False',
+          Details: [
+            {
+              Target: {
+                Name: 'BucketName',
+                Attribute: 'Properties',
+                RequiresRecreation: 'Never'
+              },
+              ChangeSource: 'DirectModification',
+              Evaluation: 'Static'
+            }
+          ]
         }
-      ]
-    })
-  });
-
-  const mockListChangeSets = jest.fn().mockReturnValue({
-    promise: jest.fn().mockResolvedValue({
-      Summaries: [
-        {
-          ChangeSetName: 'latest-changeset',
-          CreationTime: '2023-01-02T00:00:00.000Z'
-        },
-        {
-          ChangeSetName: 'older-changeset',
-          CreationTime: '2023-01-01T00:00:00.000Z'
+      },
+      {
+        ResourceChange: {
+          LogicalResourceId: 'MyReplacementResource',
+          ResourceType: 'AWS::Lambda::Function',
+          Action: 'Modify',
+          Replacement: 'True',
+          Details: [
+            {
+              Target: {
+                Name: 'Runtime',
+                Attribute: 'Properties',
+                RequiresRecreation: 'Always'
+              },
+              ChangeSource: 'DirectModification',
+              Evaluation: 'Static'
+            }
+          ]
         }
-      ]
-    })
-  });
+      },
+      {
+        ResourceChange: {
+          LogicalResourceId: 'MyModifiedResource',
+          ResourceType: 'AWS::IAM::Role',
+          Action: 'Modify',
+          Replacement: 'False',
+          Details: [
+            {
+              Target: {
+                Name: 'PolicyName',
+                Attribute: 'Properties',
+                RequiresRecreation: 'Never'
+              },
+              ChangeSource: 'DirectModification',
+              Evaluation: 'Static'
+            }
+          ]
+        }
+      },
+      {
+        ResourceChange: {
+          LogicalResourceId: 'MyRemovedResource',
+          ResourceType: 'AWS::DynamoDB::Table',
+          Action: 'Remove'
+        }
+      }
+    ]
+  };
 
+  // Create mock for listChangeSets
+  const mockListChangeSetsResponse = {
+    Summaries: [
+      {
+        ChangeSetName: 'latest-changeset',
+        CreationTime: '2023-01-02T00:00:00.000Z'
+      },
+      {
+        ChangeSetName: 'older-changeset',
+        CreationTime: '2023-01-01T00:00:00.000Z'
+      }
+    ]
+  };
+
+  // Return the CloudFormation class constructor mock
   return {
-    config: {
-      update: jest.fn()
-    },
-    CloudFormation: jest.fn(() => ({
-      describeChangeSet: mockDescribeChangeSet,
-      listChangeSets: mockListChangeSets
-    }))
+    CloudFormation: jest.fn().mockImplementation(() => {
+      return {
+        describeChangeSet: jest.fn().mockResolvedValue(mockChangesetResponse),
+        listChangeSets: jest.fn().mockResolvedValue(mockListChangeSetsResponse)
+      };
+    })
   };
 });
 

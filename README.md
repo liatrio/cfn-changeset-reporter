@@ -5,13 +5,14 @@ A GitHub Action to generate color-coded reports directly in GitHub Actions logs 
 ## Features
 
 - Generates detailed reports about CloudFormation changesets
-- Color-codes resources by their impact (🟢 Add, 🟡 Modify, 🔴 Replacement)
+- Color-codes resources by their impact (🟢 Add, 🟡 Modify, 🔴 Replacement, ⛔ Removal)
 - Groups resources by replacement status for better visibility
 - Highlights which property changes cause resource replacements
 - Outputs directly to GitHub Actions console with rich formatting
 - Can use the latest changeset or a specified one
 - Provides outputs that can be used by subsequent workflow steps
 - Dynamic table formatting that automatically adjusts column widths based on content
+- Enhanced visualization with ANSI color codes and emojis for better readability
 
 ## Usage
 
@@ -89,17 +90,38 @@ The generated report includes:
 
 Resources are grouped and color-coded by their impact:
 
+- ⛔ **Resources to be removed** - Resources that will be completely deleted from the stack
 - 🔴 **Resources requiring replacement** - Highest impact changes that will create new resources
 - 🟡 **Resources modified in-place** - Medium impact changes that modify existing resources
 - 🟢 **New resources** - Resources being added for the first time
 
-### Replacement Detail Analysis
+### Detailed Section Analysis
 
-For resources that require replacement:
+#### For Resources That Require Replacement
 
 - Identifies and highlights the specific property changes causing the replacement
 - Marks properties with `⚠️` when they trigger resource recreation
 - Shows whether replacement is conditional or always required
+
+#### For Resources Being Removed
+
+- Provides clear warning about permanent deletion
+- Displays the resource type and identifier with prominent formatting
+- Lists any available property details about the resource being removed
+
+#### For Modified and Added Resources
+
+- Shows clean, categorized lists of all changes
+- Uses color-coded property names to indicate change impact
+- Formats complex resource types using subtle gray coloring for better readability
+
+### Dynamic Table Formatting
+
+- Automatically adjusts column widths based on content length
+- Color-codes resource names and actions based on their impact
+- Uses consistent spacing and formatting for better readability
+- Provides emoji indicators (⛔,🔴,🟡,🟢) for quick visual assessment
+- Highlights critical information with bright colors and bold text
 
 ## Development
 
