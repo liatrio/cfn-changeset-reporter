@@ -120,7 +120,7 @@ function generateMarkdownReport(changeset) {
     resource._color = color;
   });
   
-  report += `\x1b[97mChanges Summary (${totalCount})\x1b[0m\n\n`;
+  report += `\x1b[97m[1mChanges Summary (${totalCount})\x1b[0m\n\n`;
   
   // Create summary with counts
   report += `🔴 \x1b[91mResources requiring replacement:\x1b[0m ${replacementGroups['Will be replaced'].length}  \n`;
@@ -129,9 +129,9 @@ function generateMarkdownReport(changeset) {
   
   // Create a complete table with all changes
   if (totalCount > 0) {
-    report += `\x1b[41mAll Changes\x1b[0m\n\n`;
-    report += `| # | Resource | Type | Action | Replacement |\n`;
-    report += `|---|----------|------|--------|-------------|\n`;
+    report += `\x1b[97m[1mAll Changes\x1b[0m\n\n`;
+    report += `\x1b[97m| # | Resource | Type | Action | Replacement |\x1b[0m\n`;
+    report += `\x1b[97m|---|----------|------|--------|-------------|\x1b[0m\n`;
     
     changes.forEach((change, i) => {
       const resource = change.ResourceChange;
@@ -142,7 +142,7 @@ function generateMarkdownReport(changeset) {
       else if (color === 'yellow') colorEmoji = '🟡';
       else if (color === 'green') colorEmoji = '🟢';
       
-      report += `| ${i+1} | ${colorEmoji} ${resource.LogicalResourceId} | ${resource.ResourceType} | ${resource.Action} | ${resource.Replacement || 'N/A'} |\n`;
+      report += `\x1b[97m| ${i+1} |\x1b[0m ${colorEmoji} ${resource.LogicalResourceId} \x1b[97m|\x1b[0m ${resource.ResourceType} \x1b[97m|\x1b[0m ${resource.Action} \x1b[97m|\x1b[0m ${resource.Replacement || 'N/A'} \x1b[97m|\x1b[0m\n`;
     });
     
     // Create detailed sections by replacement type
