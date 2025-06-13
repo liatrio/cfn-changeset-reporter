@@ -66,8 +66,6 @@ describe('CloudFormation Changeset Reporter', () => {
           return 'test-stack';
         case 'changeset-name':
           return 'test-changeset';
-        case 'output-format':
-          return 'markdown';
         default:
           return '';
       }
