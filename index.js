@@ -6,13 +6,13 @@ const { CloudFormation } = require('@aws-sdk/client-cloudformation');
 async function run() {
   try {
     // Get inputs from action
-    // const awsRegion = core.getInput('aws-region', { required: true });
-    // const stackName = core.getInput('stack-name', { required: true });
-    // const changesetName = core.getInput('changeset-name');
+    const awsRegion = core.getInput('aws-region', { required: true });
+    const stackName = core.getInput('stack-name', { required: true });
+    const changesetName = core.getInput('changeset-name');
 
-    const awsRegion = "us-east-2";
-    const stackName = "SC-015451699691-pp-lfi2taor2qupk";
-    const changesetName = "change-1";
+    // const awsRegion = "us-east-2";
+    // const stackName = "SC-015451699691-pp-lfi2taor2qupk";
+    // const changesetName = "change-1";
     // Configure AWS SDK
     // JS SDK v3 does not support global configuration.
     // Codemod has attempted to pass values to each service client in this file.
