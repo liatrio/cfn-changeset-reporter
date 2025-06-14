@@ -10,14 +10,14 @@ jobs:
       issues: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
         with:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4.4
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Install Dependencies
         run: yarn install

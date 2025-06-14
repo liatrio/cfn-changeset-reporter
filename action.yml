@@ -1,12 +1,12 @@
 name: 'CloudFormation Changeset Reporter'
 description: 'Generates color-coded reports directly in GitHub Actions logs from AWS CloudFormation changesets with focus on resource replacement impact'
-author: 'Grant Meyer'
+author: 'Liatrio'
 
 inputs:
   aws-region:
     description: 'AWS region to connect to'
     required: true
-    default: 'us-east-1'
+    default: 'us-east-2'
   stack-name:
     description: 'Name of the CloudFormation stack'
     required: true
@@ -15,7 +15,7 @@ inputs:
     required: false
 
 runs:
-  using: 'node16'
+  using: 'node22'
   main: 'dist/index.js'
 
 branding:
