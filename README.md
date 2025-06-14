@@ -66,8 +66,6 @@ jobs:
             })
 ```
 
-
-
 ## Inputs
 
 | Name | Description | Required | Default |
