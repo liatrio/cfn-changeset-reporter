@@ -175,11 +175,16 @@ function generateMarkdownReport(changeset) {
         textColorCode = '\x1b[92m';
       }
       
-      // Format each cell with proper width (fixed index column with exactly one space on each side)
-      const resourceCell = `${colorEmoji} ${textColorCode}${resource.LogicalResourceId}\x1b[0m`.padEnd(colWidths['Resource'] + 9); // +9 to account for color code chars
+      // Format each cell with proper width
+      // The issue is with ANSI escape sequences taking up string length but not visual space
+      // We'll use fixed ANSI sequence length for consistency
+      
+      const ANSI_COLOR_LENGTH = 9; // Standard ANSI color sequence length for our color codes
+      
+      const resourceCell = `${colorEmoji} ${textColorCode}${resource.LogicalResourceId}\x1b[0m`.padEnd(colWidths['Resource'] + ANSI_COLOR_LENGTH);
       const typeCell = resource.ResourceType.padEnd(colWidths['Type']);
-      const actionCell = `${textColorCode}${resource.Action}\x1b[0m`.padEnd(colWidths['Action'] + 9);
-      const replacementCell = (resource.Replacement || 'N/A').padEnd(colWidths['Replacement']);
+      const actionCell = `${textColorCode}${resource.Action}\x1b[0m`.padEnd(colWidths['Action'] + ANSI_COLOR_LENGTH);
+      const replacementCell = `${textColorCode}${resource.Replacement || 'N/A'}\x1b[0m`.padEnd(colWidths['Replacement'] + ANSI_COLOR_LENGTH);
       
       report += `\x1b[97m| ${i+1} |\x1b[0m ${resourceCell} \x1b[97m|\x1b[0m ${typeCell} \x1b[97m|\x1b[0m ${actionCell} \x1b[97m|\x1b[0m ${replacementCell} \x1b[97m|\x1b[0m\n`;
     });
