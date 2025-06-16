@@ -188,8 +188,8 @@ function generateMarkdownReport(changeset) {
     if (replacementGroups['Will be replaced'].length > 0) {
       report += `\n\n\x1b[91m\x1b[1m🔴 Resources Requiring Replacement\x1b[0m (${replacementGroups['Will be replaced'].length})\n\n`;
       
-      replacementGroups['Will be replaced'].forEach(({ index, resource, change }) => {
-        report += `   \x1b[1m${index}.\x1b[0m \x1b[91m${resource.LogicalResourceId}\x1b[0m (\x1b[90m${resource.ResourceType}\x1b[0m)\n`;
+      replacementGroups['Will be replaced'].forEach(({ resource, change }, localIndex) => {
+        report += `   \x1b[1m${localIndex + 1}.\x1b[0m \x1b[91m${resource.LogicalResourceId}\x1b[0m (\x1b[90m${resource.ResourceType}\x1b[0m)\n`;
         report += `     • \x1b[97mAction:\x1b[0m \x1b[91m${resource.Action}\x1b[0m\n`;
         report += `     • \x1b[97mReplacement:\x1b[0m \x1b[91m${resource.Replacement}\x1b[0m\n`;
         
@@ -231,8 +231,8 @@ function generateMarkdownReport(changeset) {
     if (replacementGroups['Modified without replacement'].length > 0) {
       report += `\n\n\x1b[93m\x1b[1m🟡 Resources Modified In-Place\x1b[0m (${replacementGroups['Modified without replacement'].length})\n\n`;
       
-      replacementGroups['Modified without replacement'].forEach(({ index, resource, change }) => {
-        report += `   \x1b[1m${index}.\x1b[0m \x1b[93m${resource.LogicalResourceId}\x1b[0m (\x1b[90m${resource.ResourceType}\x1b[0m)\n`;
+      replacementGroups['Modified without replacement'].forEach(({ resource, change }, localIndex) => {
+        report += `   \x1b[1m${localIndex + 1}.\x1b[0m \x1b[93m${resource.LogicalResourceId}\x1b[0m (\x1b[90m${resource.ResourceType}\x1b[0m)\n`;
         report += `     • \x1b[97mAction:\x1b[0m \x1b[93m${resource.Action}\x1b[0m\n`;
         report += `     • \x1b[97mReplacement:\x1b[0m ${resource.Replacement || 'N/A'}\n`;
         
@@ -251,8 +251,8 @@ function generateMarkdownReport(changeset) {
     if (replacementGroups['New resources'].length > 0) {
       report += `\n\n\x1b[92m\x1b[1m🟢 New Resources\x1b[0m (${replacementGroups['New resources'].length})\n\n`;
       
-      replacementGroups['New resources'].forEach(({ index, resource, change }) => {
-        report += `   \x1b[1m${index}.\x1b[0m \x1b[92m${resource.LogicalResourceId}\x1b[0m (\x1b[90m${resource.ResourceType}\x1b[0m)\n`;
+      replacementGroups['New resources'].forEach(({ resource, change }, localIndex) => {
+        report += `   \x1b[1m${localIndex + 1}.\x1b[0m \x1b[92m${resource.LogicalResourceId}\x1b[0m (\x1b[90m${resource.ResourceType}\x1b[0m)\n`;
         report += `     • \x1b[97mAction:\x1b[0m \x1b[92m${resource.Action}\x1b[0m\n`;
         
         // For new resources, we might not have details but can include them if available
@@ -271,8 +271,8 @@ function generateMarkdownReport(changeset) {
     if (replacementGroups['Removed resources'].length > 0) {
       report += `\n\n\x1b[31m\x1b[1m⛔ Resources Being Removed\x1b[0m (${replacementGroups['Removed resources'].length})\n\n`;
       
-      replacementGroups['Removed resources'].forEach(({ index, resource, change }) => {
-        report += `   \x1b[1m${index}.\x1b[0m \x1b[31m${resource.LogicalResourceId}\x1b[0m (\x1b[90m${resource.ResourceType}\x1b[0m)\n`;
+      replacementGroups['Removed resources'].forEach(({ resource, change }, localIndex) => {
+        report += `   \x1b[1m${localIndex + 1}.\x1b[0m \x1b[31m${resource.LogicalResourceId}\x1b[0m (\x1b[90m${resource.ResourceType}\x1b[0m)\n`;
         report += `     • \x1b[97mAction:\x1b[0m \x1b[31m${resource.Action}\x1b[0m\n`;
         
         // For removed resources, show any available details
