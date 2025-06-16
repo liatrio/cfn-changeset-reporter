@@ -67,7 +67,7 @@ async function run() {
 
 
 function generateMarkdownReport(changeset) {
-  let report = `CloudFormation Changeset Report\n\n`;
+  let report = `\x1b[97m\x1b[1m── Cloudformation Changeset Report (${totalCount}) ──\x1b[0m\n\n`;
   
   const changes = changeset.Changes || [];
   const totalCount = changes.length;
