@@ -1,5 +1,5 @@
 name: 'CloudFormation Changeset Reporter'
-description: 'Generates color-coded reports directly in GitHub Actions logs from AWS CloudFormation changesets with focus on resource replacement impact'
+description: 'Generates color-coded reports directly in GitHub Actions logs from AWS CloudFormation changesets'
 author: 'Liatrio'
 
 inputs:
