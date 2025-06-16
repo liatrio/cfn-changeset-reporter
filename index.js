@@ -173,10 +173,7 @@ function generateMarkdownReport(changeset) {
       const resourceCell = `${colorEmoji} ${textColorCode}${resource.LogicalResourceId}\x1b[0m`.padEnd(colWidths['Resource'] + 9); // +9 to account for color code chars
       const typeCell = resource.ResourceType.padEnd(colWidths['Type']);
       const actionCell = `${textColorCode}${resource.Action}\x1b[0m`.padEnd(colWidths['Action'] + 9);
-      
-      // Special handling for the Replacement column
-      let replacementText = resource.Replacement || 'N/A';
-      const replacementCell = `${textColorCode}${replacementText}\x1b[0m`.padEnd(colWidths['Replacement'] + 9);
+      const replacementCell = (resource.Replacement || 'N/A').padEnd(colWidths['Replacement']);
       
       report += `\x1b[97m| ${i+1} |\x1b[0m ${resourceCell} \x1b[97m|\x1b[0m ${typeCell} \x1b[97m|\x1b[0m ${actionCell} \x1b[97m|\x1b[0m ${replacementCell} \x1b[97m|\x1b[0m\n`;
     });
