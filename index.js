@@ -1,4 +1,6 @@
 const core = require('@actions/core');
+const github = require('@actions/github');
+
 const { CloudFormation } = require('@aws-sdk/client-cloudformation');
 
 async function run() {
@@ -7,11 +9,13 @@ async function run() {
     const awsRegion = core.getInput('aws-region', { required: true });
     const stackName = core.getInput('stack-name', { required: true });
     const changesetName = core.getInput('changeset-name');
-
+    const context = github.context;
     // Create CloudFormation client using AWS SDK v3
     const cloudformation = new CloudFormation({
       region: awsRegion
     });
+
+    core.info(`Event Name: ${context.eventName}`);
 
     // If changeset name is not specified, get the latest one for the stack
     let actualChangesetName = changesetName;
