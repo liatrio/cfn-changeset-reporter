@@ -92,23 +92,34 @@ async function run() {
         }
 
         // Check for existing comments for this stack
-        const stackPattern = `> **Stack:** \`${stackName}\``;
+        const stackPattern = `\`${stackName}\``;
         const existingComments = await octokit.rest.issues.listComments({
           ...context.repo,
           issue_number: context.payload.pull_request.number,
         });
         
-        // Check if we have an existing comment for this stack
+        core.info(`Searching for existing comments containing stack pattern: "${stackPattern}"`);
+        core.info(`Found ${existingComments.data.length} total comments on this PR`);
+        
+        // Add a hidden marker to help identify our comments
+        const commentMarker = `<!-- CloudFormation ChangeSets for stack: ${stackName} -->`;
+        const reportWithMarker = `${commentMarker}\n${markdownReport}`;
+        
+        // Check if we have an existing comment for this stack - look for either the marker or the stack name
         const existingComment = existingComments.data.find(
-          comment => comment.body && comment.body.includes(stackPattern)
+          comment => comment.body && (
+            comment.body.includes(commentMarker) || 
+            comment.body.includes(stackPattern)
+          )
         );
-
+        
         if (existingComment) {
+          core.info(`Found existing comment (ID: ${existingComment.id}) for stack: ${stackName}`);
           // Update the existing comment
           await octokit.rest.issues.updateComment({
             ...context.repo,
             comment_id: existingComment.id,
-            body: markdownReport
+            body: reportWithMarker
           });
           core.info(`Updated existing PR comment for stack: ${stackName}`);
         } else {
@@ -116,7 +127,7 @@ async function run() {
           await octokit.rest.issues.createComment({
             ...context.repo,
             issue_number: context.payload.pull_request.number,
-            body: markdownReport
+            body: reportWithMarker
           });
           core.info(`Created new PR comment for stack: ${stackName}`);
         }
