@@ -86,7 +86,6 @@ async function run() {
         }
 
         // Check for existing comments for this stack
-        const stackPattern = `\`${stackName}\``;
         const existingComments = await octokit.rest.issues.listComments({
           ...context.repo,
           issue_number: context.payload.pull_request.number,
@@ -102,7 +101,7 @@ async function run() {
         // Check if we have an existing comment for this stack - look for either the marker or the stack name
         const existingComment = existingComments.data.find(
           comment => comment.body && (
-            comment.body_text.includes(commentMarker)
+            comment.body.includes(commentMarker)
           )
         );
         
