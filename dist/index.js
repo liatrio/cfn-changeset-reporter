@@ -67,8 +67,12 @@ async function run() {
         // Create a markdown version without ANSI color codes
         const markdownReport = createMarkdownReport(changeset);
         
-        // Use GitHub token from environment to create Octokit client
-        const octokit = github.getOctokit(process.env.GITHUB_TOKEN);
+        // Try to get GitHub token from inputs or fall back to environment
+        const token = core.getInput('github-token');
+        if (!token) {
+          throw new Error("No GitHub token found. Please provide 'github-token' input.");
+        }
+        const octokit = github.getOctokit(token);
         
         // Post comment on PR
         await octokit.rest.issues.createComment({
