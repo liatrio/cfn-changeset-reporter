@@ -84,13 +84,39 @@ async function run() {
         } catch (permError) {
           throw new Error(`Insufficient permissions to access PR data: ${permError.message}. Make sure your workflow has 'pull-requests: write' permission.`);
         }
-        
-        // Then try to post the comment
-        await octokit.rest.issues.createComment({
+
+        // Check for existing comments for this stack
+        const commentMarker = `<!-- CloudFormation ChangeSets for stack: ${stackName} -->`;
+        const existingComments = await octokit.rest.issues.listComments({
           ...context.repo,
           issue_number: context.payload.pull_request.number,
-          body: markdownReport
         });
+
+        // Add the marker to the report
+        const reportWithMarker = `${commentMarker}\n${markdownReport}`;
+        
+        // Check if we have an existing comment for this stack
+        const existingComment = existingComments.data.find(
+          comment => comment.body && comment.body.includes(commentMarker)
+        );
+
+        if (existingComment) {
+          // Update the existing comment
+          await octokit.rest.issues.updateComment({
+            ...context.repo,
+            comment_id: existingComment.id,
+            body: reportWithMarker
+          });
+          core.info(`Updated existing PR comment for stack: ${stackName}`);
+        } else {
+          // Create a new comment
+          await octokit.rest.issues.createComment({
+            ...context.repo,
+            issue_number: context.payload.pull_request.number,
+            body: reportWithMarker
+          });
+          core.info(`Created new PR comment for stack: ${stackName}`);
+        }
         
         core.info("Successfully posted CloudFormation changeset report as PR comment");
       } catch (error) {
