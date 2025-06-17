@@ -92,18 +92,15 @@ async function run() {
         }
 
         // Check for existing comments for this stack
-        const commentMarker = `<!-- CloudFormation ChangeSets for stack: ${stackName} -->`;
+        const stackPattern = `> **Stack:** \`${stackName}\``;
         const existingComments = await octokit.rest.issues.listComments({
           ...context.repo,
           issue_number: context.payload.pull_request.number,
         });
-
-        // Add the marker to the report
-        const reportWithMarker = `${commentMarker}\n${markdownReport}`;
         
         // Check if we have an existing comment for this stack
         const existingComment = existingComments.data.find(
-          comment => comment.body && comment.body.includes(commentMarker)
+          comment => comment.body && comment.body.includes(stackPattern)
         );
 
         if (existingComment) {
@@ -111,7 +108,7 @@ async function run() {
           await octokit.rest.issues.updateComment({
             ...context.repo,
             comment_id: existingComment.id,
-            body: reportWithMarker
+            body: markdownReport
           });
           core.info(`Updated existing PR comment for stack: ${stackName}`);
         } else {
@@ -119,7 +116,7 @@ async function run() {
           await octokit.rest.issues.createComment({
             ...context.repo,
             issue_number: context.payload.pull_request.number,
-            body: reportWithMarker
+            body: markdownReport
           });
           core.info(`Created new PR comment for stack: ${stackName}`);
         }

@@ -127,6 +127,13 @@ Resources are grouped and color-coded by their impact:
 
 When this action runs in a pull request context, it can automatically add the changeset report as a comment on the PR. To enable this feature:
 
+### Comment Update Behavior
+
+When the action runs multiple times on the same PR for the same stack:
+
+- It will update any existing comments for that stack instead of creating new ones
+- This helps keep the PR thread clean and focused, especially for PRs with multiple stacks or frequent updates
+
 ### 1. Add Required Permissions to Your Workflow
 
 ```yaml
