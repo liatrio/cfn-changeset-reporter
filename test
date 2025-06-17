@@ -1,0 +1,5 @@
+  // Add stack and changeset information
+  markdown += `> **Stack:** \`${changeset.StackName}\`  \n`;
+  markdown += `> **Changeset:** \`${changeset.ChangeSetName}\`  \n`;
+  markdown += `> **Status:** \`${changeset.Status}\`  \n`;
+  markdown += `> **Execution Status:** \`${changeset.ExecutionStatus || 'N/A'}\`\n\n`;

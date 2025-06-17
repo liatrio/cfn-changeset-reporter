@@ -117,12 +117,6 @@ async function run() {
 function generateMarkdownReport(changeset) {
   let report = `\x1b[97m\x1b[1m── Cloudformation Changeset Report ──\x1b[0m\n\n`;
   
-  // Add stack and changeset information explicitly
-  report += `\x1b[97m\x1b[1mStack:\x1b[0m \x1b[96m${changeset.StackName}\x1b[0m\n`;
-  report += `\x1b[97m\x1b[1mChangeset:\x1b[0m \x1b[96m${changeset.ChangeSetName}\x1b[0m\n`;
-  report += `\x1b[97m\x1b[1mStatus:\x1b[0m \x1b[96m${changeset.Status}\x1b[0m\n`;
-  report += `\x1b[97m\x1b[1mExecution Status:\x1b[0m \x1b[96m${changeset.ExecutionStatus || 'N/A'}\x1b[0m\n\n`;
-  
   const changes = changeset.Changes || [];
   const totalCount = changes.length;
   
@@ -398,42 +392,19 @@ function createMarkdownReport(changeset) {
   
   // Build markdown report
   let markdown = `# CloudFormation Changeset Report\n\n`;
-  
-  // Add stack and changeset information
+
+    // Add stack and changeset information
   markdown += `> **Stack:** \`${changeset.StackName}\`  \n`;
   markdown += `> **Changeset:** \`${changeset.ChangeSetName}\`  \n`;
   markdown += `> **Status:** \`${changeset.Status}\`  \n`;
   markdown += `> **Execution Status:** \`${changeset.ExecutionStatus || 'N/A'}\`\n\n`;
   
-  // Add summary section with visual enhancements
+  // Add summary section
   markdown += `## Changes Summary (${totalCount})\n\n`;
-  
-  // Use colored blocks for the summary
-  if (replacementGroups['Removed resources'].length > 0) {
-    markdown += `- ⛔ **Resources to be removed:** ${replacementGroups['Removed resources'].length}\n  <span style="color:red">■</span> \`CRITICAL\`\n`;
-  } else {
-    markdown += `- ⛔ **Resources to be removed:** ${replacementGroups['Removed resources'].length}\n`;
-  }
-  
-  if (replacementGroups['Will be replaced'].length > 0) {
-    markdown += `- 🔴 **Resources requiring replacement:** ${replacementGroups['Will be replaced'].length}\n  <span style="color:orange">■</span> \`HIGH IMPACT\`\n`;
-  } else {
-    markdown += `- � **Resources requiring replacement:** ${replacementGroups['Will be replaced'].length}\n`;
-  }
-  
-  if (replacementGroups['Modified without replacement'].length > 0) {
-    markdown += `- �🟡 **Resources modified in-place:** ${replacementGroups['Modified without replacement'].length}\n  <span style="color:yellow">■</span> \`MEDIUM IMPACT\`\n`;
-  } else {
-    markdown += `- � **Resources modified in-place:** ${replacementGroups['Modified without replacement'].length}\n`;
-  }
-  
-  if (replacementGroups['New resources'].length > 0) {
-    markdown += `- 🟢 **New resources to be created:** ${replacementGroups['New resources'].length}\n  <span style="color:green">■</span> \`LOW IMPACT\`\n`;
-  } else {
-    markdown += `- �🟢 **New resources to be created:** ${replacementGroups['New resources'].length}\n`;
-  }
-  
-  markdown += `\n`;
+  markdown += `- ⛔ **Resources to be removed:** ${replacementGroups['Removed resources'].length}\n`;
+  markdown += `- 🔴 **Resources requiring replacement:** ${replacementGroups['Will be replaced'].length}\n`;
+  markdown += `- 🟡 **Resources modified in-place:** ${replacementGroups['Modified without replacement'].length}\n`;
+  markdown += `- 🟢 **New resources to be created:** ${replacementGroups['New resources'].length}\n\n`;
   
   // Add table of all changes
   if (totalCount > 0) {
@@ -459,7 +430,6 @@ function createMarkdownReport(changeset) {
     // Resources Requiring Replacement section
     if (replacementGroups['Will be replaced'].length > 0) {
       markdown += `\n## 🔴 Resources Requiring Replacement (${replacementGroups['Will be replaced'].length})\n\n`;
-      markdown += `> 🛑 **HIGH IMPACT CHANGES** - These resources will be replaced (destroyed and recreated)\n\n`;
       
       replacementGroups['Will be replaced'].forEach(({ resource, change }, localIndex) => {
         markdown += `### ${localIndex + 1}. ${resource.LogicalResourceId} (${resource.ResourceType})\n`;
@@ -500,7 +470,6 @@ function createMarkdownReport(changeset) {
     // Modified resources section
     if (replacementGroups['Modified without replacement'].length > 0) {
       markdown += `\n## 🟡 Resources Modified In-Place (${replacementGroups['Modified without replacement'].length})\n\n`;
-      markdown += `> ⚠️ **MEDIUM IMPACT CHANGES** - These resources will be updated without replacement\n\n`;
       
       replacementGroups['Modified without replacement'].forEach(({ resource, change }, localIndex) => {
         markdown += `### ${localIndex + 1}. ${resource.LogicalResourceId} (${resource.ResourceType})\n`;
@@ -521,7 +490,6 @@ function createMarkdownReport(changeset) {
     // New resources section
     if (replacementGroups['New resources'].length > 0) {
       markdown += `\n## 🟢 New Resources (${replacementGroups['New resources'].length})\n\n`;
-      markdown += `> ✅ **LOW IMPACT CHANGES** - These are new resources being created\n\n`;
       
       replacementGroups['New resources'].forEach(({ resource, change }, localIndex) => {
         markdown += `### ${localIndex + 1}. ${resource.LogicalResourceId} (${resource.ResourceType})\n`;
@@ -542,7 +510,6 @@ function createMarkdownReport(changeset) {
     // Removed resources section
     if (replacementGroups['Removed resources'].length > 0) {
       markdown += `\n## ⛔ Resources Being Removed (${replacementGroups['Removed resources'].length})\n\n`;
-      markdown += `> 🚨 **CRITICAL IMPACT CHANGES** - These resources will be permanently deleted\n\n`;
       
       replacementGroups['Removed resources'].forEach(({ resource, change }, localIndex) => {
         markdown += `### ${localIndex + 1}. ${resource.LogicalResourceId} (${resource.ResourceType})\n`;
