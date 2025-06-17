@@ -13,6 +13,10 @@ inputs:
   changeset-name:
     description: 'Name of the changeset to report on'
     required: false
+  github-token:
+    description: 'GitHub token for commenting on PRs'
+    required: false
+    default: ${{ github.token }}
 
 runs:
   using: 'node20'

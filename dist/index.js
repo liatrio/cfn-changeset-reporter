@@ -53,16 +53,40 @@ async function run() {
     let report;
     
     report = generateMarkdownReport(changeset);
+
     
-    // Print the report line by line for better readability in GitHub Actions logs
-    const reportLines = report.split('\n');
-    reportLines.forEach(line => {
-      core.info(line);
-    });
-    // Set output for other actions to use
+    
+    // Set outputs first
     core.setOutput('report', report);
     core.setOutput('changeset-name', actualChangesetName);
     core.setOutput('changeset-status', changeset.Status);
+    
+    if (context.eventName === 'pull_request') {
+      // For PRs, comment on the PR instead of logging
+      try {
+        // Create a markdown version without ANSI color codes
+        const markdownReport = createMarkdownReport(changeset);
+        
+        // Use GitHub token from environment to create Octokit client
+        const octokit = github.getOctokit(process.env.GITHUB_TOKEN);
+        
+        // Post comment on PR
+        await octokit.rest.issues.createComment({
+          ...context.repo,
+          issue_number: context.payload.pull_request.number,
+          body: markdownReport
+        });
+        
+        core.info("Posted CloudFormation changeset report as PR comment");
+      } catch (error) {
+        core.warning(`Failed to comment on PR: ${error.message}`);
+        // Fall back to logging in case of error
+        logReport(report);
+      }
+    } else {
+      // For non-PR events, log to console as usual
+      logReport(report);
+    }
     
   } catch (error) {
     core.setFailed(`Action failed: ${error.message}`);
@@ -301,6 +325,86 @@ function generateMarkdownReport(changeset) {
   }
   
   return report;
+}
+
+/**
+ * Helper function to log the report to console line by line
+ */
+function logReport(report) {
+  const reportLines = report.split('\n');
+  reportLines.forEach(line => {
+    core.info(line);
+  });
+}
+
+/**
+ * Creates a markdown formatted report without ANSI color codes
+ */
+function createMarkdownReport(changeset) {
+  const changes = changeset.Changes || [];
+  const totalCount = changes.length;
+  
+  // Group resources like in the original report
+  const replacementGroups = {
+    'Will be replaced': [],
+    'Modified without replacement': [],
+    'New resources': [],
+    'Removed resources': []
+  };
+  
+  // Categorize changes
+  changes.forEach((change, i) => {
+    const resource = change.ResourceChange;
+    const needsReplacement = resource.Replacement === 'True' || resource.Replacement === 'Conditional';
+    const isAdd = resource.Action === 'Add';
+    const isRemove = resource.Action === 'Remove';
+    
+    if (isRemove) {
+      replacementGroups['Removed resources'].push({ index: i+1, resource, change });
+    } else if (needsReplacement) {
+      replacementGroups['Will be replaced'].push({ index: i+1, resource, change });
+    } else if (isAdd) {
+      replacementGroups['New resources'].push({ index: i+1, resource, change });
+    } else {
+      replacementGroups['Modified without replacement'].push({ index: i+1, resource, change });
+    }
+  });
+  
+  // Build markdown report
+  let markdown = `# CloudFormation Changeset Report\n\n`;
+  
+  // Add summary section
+  markdown += `## Changes Summary (${totalCount})\n\n`;
+  markdown += `- ⛔ **Resources to be removed:** ${replacementGroups['Removed resources'].length}\n`;
+  markdown += `- 🔴 **Resources requiring replacement:** ${replacementGroups['Will be replaced'].length}\n`;
+  markdown += `- 🟡 **Resources modified in-place:** ${replacementGroups['Modified without replacement'].length}\n`;
+  markdown += `- 🟢 **New resources to be created:** ${replacementGroups['New resources'].length}\n\n`;
+  
+  // Add table of all changes
+  if (totalCount > 0) {
+    markdown += `## All Changes\n\n`;
+    markdown += `| # | Resource | Type | Action | Replacement |\n`;
+    markdown += `|---|---------|------|--------|-------------|\n`;
+    
+    changes.forEach((change, i) => {
+      const resource = change.ResourceChange;
+      const needsReplacement = resource.Replacement === 'True' || resource.Replacement === 'Conditional';
+      const isAdd = resource.Action === 'Add';
+      const isRemove = resource.Action === 'Remove';
+      
+      let emoji = '⚪';
+      if (isRemove) emoji = '⛔';
+      else if (needsReplacement) emoji = '🔴';
+      else if (isAdd) emoji = '🟢';
+      else emoji = '🟡';
+      
+      markdown += `| ${i+1} | ${emoji} ${resource.LogicalResourceId} | ${resource.ResourceType} | ${resource.Action} | ${resource.Replacement || 'N/A'} |\n`;
+    });
+  } else {
+    markdown += 'No changes detected.\n';
+  }
+  
+  return markdown;
 }
 
 // Export for testing
