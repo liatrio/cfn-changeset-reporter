@@ -98,7 +98,7 @@ async function run() {
           issue_number: context.payload.pull_request.number,
         });
         
-        core.info(`Searching for existing comments containing stack pattern: "${stackPattern}"`);
+
         core.info(`Found ${existingComments.data.length} total comments on this PR`);
         
         // Add a hidden marker to help identify our comments
@@ -108,8 +108,7 @@ async function run() {
         // Check if we have an existing comment for this stack - look for either the marker or the stack name
         const existingComment = existingComments.data.find(
           comment => comment.body && (
-            comment.body.includes(commentMarker) || 
-            comment.body.includes(stackPattern)
+            comment.body_text.includes(commentMarker)
           )
         );
         
