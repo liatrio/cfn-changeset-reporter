@@ -420,6 +420,106 @@ function createMarkdownReport(changeset) {
       
       markdown += `| ${i+1} | ${emoji} ${resource.LogicalResourceId} | ${resource.ResourceType} | ${resource.Action} | ${resource.Replacement || 'N/A'} |\n`;
     });
+    
+    // Resources Requiring Replacement section
+    if (replacementGroups['Will be replaced'].length > 0) {
+      markdown += `\n## 🔴 Resources Requiring Replacement (${replacementGroups['Will be replaced'].length})\n\n`;
+      
+      replacementGroups['Will be replaced'].forEach(({ resource, change }, localIndex) => {
+        markdown += `### ${localIndex + 1}. ${resource.LogicalResourceId} (${resource.ResourceType})\n`;
+        markdown += `- **Action:** ${resource.Action}\n`;
+        markdown += `- **Replacement:** ${resource.Replacement}\n`;
+        
+        // Highlight what's causing the replacement
+        markdown += `- **⚠️ Replacement Reason:**\n`;
+        
+        if (resource.Details && resource.Details.length > 0) {
+          const replacementCauses = resource.Details.filter(detail => 
+            detail.Evaluation === 'Dynamic' || 
+            detail.Target.RequiresRecreation === 'Always' ||
+            detail.Target.RequiresRecreation === 'Conditionally'
+          );
+          
+          if (replacementCauses.length > 0) {
+            replacementCauses.forEach(detail => {
+              markdown += `  - Property \`${detail.Target.Name}\` requires recreation (${detail.Target.RequiresRecreation})\n`;
+            });
+          } else {
+            markdown += `  - Implicit replacement due to dependent resource changes\n`;
+          }
+          
+          markdown += `\n- **All Property Changes:**\n`;
+          resource.Details.forEach(detail => {
+            const isReplacementCause = detail.Target.RequiresRecreation === 'Always' || 
+                                      detail.Target.RequiresRecreation === 'Conditionally';
+            const prefix = isReplacementCause ? '⚠️ ' : '';
+            markdown += `  - ${prefix}${detail.Target.Name}: ${detail.ChangeSource} (${detail.Target.Attribute})\n`;
+          });
+        }
+        
+        markdown += '\n';
+      });
+    }
+    
+    // Modified resources section
+    if (replacementGroups['Modified without replacement'].length > 0) {
+      markdown += `\n## 🟡 Resources Modified In-Place (${replacementGroups['Modified without replacement'].length})\n\n`;
+      
+      replacementGroups['Modified without replacement'].forEach(({ resource, change }, localIndex) => {
+        markdown += `### ${localIndex + 1}. ${resource.LogicalResourceId} (${resource.ResourceType})\n`;
+        markdown += `- **Action:** ${resource.Action}\n`;
+        markdown += `- **Replacement:** ${resource.Replacement || 'N/A'}\n`;
+        
+        if (resource.Details && resource.Details.length > 0) {
+          markdown += `- **Property Changes:**\n`;
+          resource.Details.forEach(detail => {
+            markdown += `  - ${detail.Target.Name}: ${detail.ChangeSource} (${detail.Target.Attribute})\n`;
+          });
+        }
+        
+        markdown += '\n';
+      });
+    }
+    
+    // New resources section
+    if (replacementGroups['New resources'].length > 0) {
+      markdown += `\n## 🟢 New Resources (${replacementGroups['New resources'].length})\n\n`;
+      
+      replacementGroups['New resources'].forEach(({ resource, change }, localIndex) => {
+        markdown += `### ${localIndex + 1}. ${resource.LogicalResourceId} (${resource.ResourceType})\n`;
+        markdown += `- **Action:** ${resource.Action}\n`;
+        
+        // For new resources, we might not have details but can include them if available
+        if (resource.Details && resource.Details.length > 0) {
+          markdown += `- **Property Details:**\n`;
+          resource.Details.forEach(detail => {
+            markdown += `  - ${detail.Target.Name}: ${detail.ChangeSource} (${detail.Target.Attribute})\n`;
+          });
+        }
+        
+        markdown += '\n';
+      });
+    }
+    
+    // Removed resources section
+    if (replacementGroups['Removed resources'].length > 0) {
+      markdown += `\n## ⛔ Resources Being Removed (${replacementGroups['Removed resources'].length})\n\n`;
+      
+      replacementGroups['Removed resources'].forEach(({ resource, change }, localIndex) => {
+        markdown += `### ${localIndex + 1}. ${resource.LogicalResourceId} (${resource.ResourceType})\n`;
+        markdown += `- **Action:** ${resource.Action}\n`;
+        
+        // For removed resources, show any available details
+        if (resource.Details && resource.Details.length > 0) {
+          markdown += `- **Resource Details:**\n`;
+          resource.Details.forEach(detail => {
+            markdown += `  - ${detail.Target.Name}: ${detail.ChangeSource} (${detail.Target.Attribute})\n`;
+          });
+        }
+        
+        markdown += `- **⚠️ Warning:** This resource will be **PERMANENTLY DELETED**\n\n`;
+      });
+    }
   } else {
     markdown += 'No changes detected.\n';
   }
