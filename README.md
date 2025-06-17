@@ -123,6 +123,50 @@ Resources are grouped and color-coded by their impact:
 - Provides emoji indicators (⛔,🔴,🟡,🟢) for quick visual assessment
 - Highlights critical information with bright colors and bold text
 
+## PR Commenting Feature
+
+When this action runs in a pull request context, it can automatically add the changeset report as a comment on the PR. To enable this feature:
+
+### 1. Add Required Permissions to Your Workflow
+
+```yaml
+name: Report CloudFormation Changes
+
+on:
+  pull_request:
+    branches: [ main ]
+
+# Add permissions to allow PR comments
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  report-changes:
+    runs-on: ubuntu-latest
+    steps:
+      # Your other steps...
+      
+      - name: Report CloudFormation Changes
+        uses: liatrio/cfn-changeset-reporter@v1
+        with:
+          aws-region: us-east-1
+          stack-name: my-stack
+          github-token: ${{ github.token }} # This enables PR commenting
+```
+
+### 2. For PRs from Forks
+
+If you need to support PRs from forks, use `pull_request_target` instead of `pull_request` with caution:
+
+```yaml
+on:
+  pull_request_target:
+    branches: [ main ]
+```
+
+**⚠️ Security Note:** When using `pull_request_target`, be careful as it runs workflows with repository token permissions using the code from the PR.
+
 ## Development
 
 ### Prerequisites

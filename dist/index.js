@@ -61,35 +61,51 @@ async function run() {
     core.setOutput('changeset-name', actualChangesetName);
     core.setOutput('changeset-status', changeset.Status);
     
-    if (context.eventName === 'pull_request') {
-      // For PRs, comment on the PR instead of logging
+    // Always log the report for visibility in GitHub Actions logs
+    logReport(report);
+    
+    // If this is a PR, try to comment as well
+    if (context.eventName === 'pull_request' || context.eventName === 'pull_request_target') {
       try {
+        core.info('PR detected, attempting to add changeset report as a comment...');
+        
         // Create a markdown version without ANSI color codes
         const markdownReport = createMarkdownReport(changeset);
         
-        // Try to get GitHub token from inputs or fall back to environment
+        // Get the token and check permissions
         const token = core.getInput('github-token');
         if (!token) {
-          throw new Error("No GitHub token found. Please provide 'github-token' input.");
+          throw new Error("GitHub token not found. Make sure to provide the 'github-token' input.");
         }
+        
+        // Create authenticated client
         const octokit = github.getOctokit(token);
         
-        // Post comment on PR
+        // First check if we have permission to comment by getting PR details
+        try {
+          await octokit.rest.pulls.get({
+            ...context.repo,
+            pull_number: context.payload.pull_request.number
+          });
+        } catch (permError) {
+          throw new Error(`Insufficient permissions to access PR data: ${permError.message}. Make sure your workflow has 'pull-requests: write' permission.`);
+        }
+        
+        // Then try to post the comment
         await octokit.rest.issues.createComment({
           ...context.repo,
           issue_number: context.payload.pull_request.number,
           body: markdownReport
         });
         
-        core.info("Posted CloudFormation changeset report as PR comment");
+        core.info("Successfully posted CloudFormation changeset report as PR comment");
       } catch (error) {
         core.warning(`Failed to comment on PR: ${error.message}`);
-        // Fall back to logging in case of error
-        logReport(report);
+        core.warning('To fix this, ensure your workflow has the necessary permissions:');
+        core.warning("1. Add 'permissions: write-all' or 'permissions: { pull-requests: write }' to your workflow");
+        core.warning("2. If running on PR from a fork, use 'pull_request_target' event instead of 'pull_request'");
+        core.warning("3. Ensure GITHUB_TOKEN is passed to the action with 'github-token: ${{ github.token }}'");
       }
-    } else {
-      // For non-PR events, log to console as usual
-      logReport(report);
     }
     
   } catch (error) {
