@@ -7,7 +7,7 @@ async function run() {
   try {
     // Get inputs from action
     const awsRegion = core.getInput('aws-region', { required: true });
-    const stackName = core.getInput('stack-name', { required: true });
+    const rawStackName = core.getInput('stack-name', { required: true });
     const changesetName = core.getInput('changeset-name');
     const context = github.context;
     // Create CloudFormation client using AWS SDK v3
@@ -15,13 +15,15 @@ async function run() {
       region: awsRegion
     });
 
+    const stackName = extractStackName(rawStackName);
+
     // If changeset name is not specified, get the latest one for the stack
     let actualChangesetName = changesetName;
     let noChangesetFound = false;
     
     if (!actualChangesetName) {
       core.debug('No changeset name provided, finding the latest one...');
-      const listResult = await cloudformation.listChangeSets({ StackName: stackName });
+      const listResult = await cloudformation.listChangeSets({ StackName: rawStackName });
       
       if (listResult.Summaries && listResult.Summaries.length > 0) {
         // Sort by creation time, get the most recent
@@ -52,7 +54,7 @@ async function run() {
       // Get changeset details
       const params = {
         ChangeSetName: actualChangesetName,
-        StackName: stackName
+        StackName: rawStackName
       };
       
       changeset = await cloudformation.describeChangeSet(params);
@@ -125,8 +127,7 @@ async function run() {
         core.debug(`Found ${existingComments.data.length} total comments on this PR`);
         
         // Add markers to help identify our comments and stack sections
-        const displayStackName = extractStackName(stackName);
-        const stackMarker = `<!-- CloudFormation ChangeSets for stack: ${displayStackName} -->`;
+        const stackMarker = `<!-- CloudFormation ChangeSets for stack: ${stackName} -->`;
         const reportMarker = `<!-- CloudFormation ChangeSets Report -->`;
         
         // Look for an existing report comment (there should only be one)
@@ -146,7 +147,7 @@ async function run() {
           
           if (existingStackSection) {
             // Replace the existing stack section
-            core.debug(`Updating existing section for stack: ${displayStackName}`);
+            core.debug(`Updating existing section for stack: ${stackName}`);
             
             // Get content before and after the stack section
             const parts = existingReportComment.body.split(stackMarker);
@@ -180,17 +181,17 @@ async function run() {
             comment_id: existingReportComment.id,
             body: updatedBody
           });
-          core.debug(`Updated CloudFormation PR comment with stack: ${displayStackName}`);
+          core.debug(`Updated CloudFormation PR comment with stack: ${stackName}`);
         } else {
           // Create a new comment with the report title and this stack's section
-          core.debug(`Creating new CloudFormation report comment with stack: ${displayStackName}`);
+          core.debug(`Creating new CloudFormation report comment with stack: ${stackName}`);
           const fullReport = `${reportMarker}\n# CloudFormation Changeset Report\n\n${stackMarker}\n${markdownSection}`;
           await octokit.rest.issues.createComment({
             ...context.repo,
             issue_number: context.payload.pull_request.number,
             body: fullReport
           });
-          core.debug(`Created new CloudFormation PR comment with stack: ${displayStackName}`);
+          core.debug(`Created new CloudFormation PR comment with stack: ${stackName}`);
         }
         
         core.debug("Successfully posted CloudFormation changeset report as PR comment");
@@ -477,8 +478,7 @@ function generatePRSection(changeset, stackName) {
   });
   
   // Build markdown section (no title)
-  const displayStackName = extractStackName(stackName);
-  let markdown = `## Stack: \`${displayStackName}\`\n\n`;
+  let markdown = `## Stack: \`${stackName}\`\n\n`;
 
   // Add stack and changeset information
   markdown += `> **Changeset:** \`${changeset.ChangeSetName}\`  \n`;
