@@ -52,7 +52,7 @@ async function run() {
     // Generate report based on output format
     let report;
     
-    report = generateMarkdownReport(changeset);
+    report = generateActionReport(changeset);
 
     
     
@@ -70,7 +70,7 @@ async function run() {
         core.info('PR detected, attempting to add changeset report as a comment...');
         
         // Create a markdown version without ANSI color codes
-        const markdownReport = createMarkdownReport(changeset);
+        const markdownReport = generatePRReport(changeset);
         
         // Get the token and check permissions
         const token = core.getInput('github-token');
@@ -91,7 +91,7 @@ async function run() {
           throw new Error(`Insufficient permissions to access PR data: ${permError.message}. Make sure your workflow has 'pull-requests: write' permission.`);
         }
 
-        // Check for existing comments for this stack
+        // Check for existing comments
         const existingComments = await octokit.rest.issues.listComments({
           ...context.repo,
           issue_number: context.payload.pull_request.number,
@@ -102,30 +102,58 @@ async function run() {
         
         // Add a hidden marker to help identify our comments
         const commentMarker = `<!-- CloudFormation ChangeSets for stack: ${stackName} -->`;
+        const genericMarker = `<!-- CloudFormation ChangeSets Report -->`;
         const reportWithMarker = `${commentMarker}\n${markdownReport}`;
         
-        // Check if we have an existing comment for this stack - look for either the marker or the stack name
-        const existingComment = existingComments.data.find(
+        // First, check if we have an existing comment for this specific stack
+        const existingStackComment = existingComments.data.find(
+          comment => comment.body && comment.body.includes(commentMarker)
+        );
+        
+        // Next, check if we have any CloudFormation changeset comment for any stack
+        const anyCfnComment = existingComments.data.find(
           comment => comment.body && (
-            comment.body.includes(commentMarker)
+            comment.body.includes(genericMarker) ||
+            comment.body.includes('# CloudFormation Changeset Report')
           )
         );
         
-        if (existingComment) {
-          core.info(`Found existing comment (ID: ${existingComment.id}) for stack: ${stackName}`);
-          // Update the existing comment
+        if (existingStackComment) {
+          // Update the existing comment for this stack
+          core.info(`Found existing comment (ID: ${existingStackComment.id}) for stack: ${stackName}`);
           await octokit.rest.issues.updateComment({
             ...context.repo,
-            comment_id: existingComment.id,
+            comment_id: existingStackComment.id,
             body: reportWithMarker
           });
           core.info(`Updated existing PR comment for stack: ${stackName}`);
+        } else if (anyCfnComment) {
+          // Append this stack's report to an existing CloudFormation changeset comment
+          core.info(`Found existing CloudFormation comment (ID: ${anyCfnComment.id}). Appending stack: ${stackName}`);
+          
+          // Check if the comment already has our generic marker
+          let updatedBody;
+          if (!anyCfnComment.body.includes(genericMarker)) {
+            // Add the generic marker if it doesn't exist
+            updatedBody = `${genericMarker}\n${anyCfnComment.body}\n\n---\n\n${markdownReport}`;
+          } else {
+            // Otherwise just append the new report
+            updatedBody = `${anyCfnComment.body}\n\n---\n\n${commentMarker}\n${markdownReport}`;
+          }
+          
+          await octokit.rest.issues.updateComment({
+            ...context.repo,
+            comment_id: anyCfnComment.id,
+            body: updatedBody
+          });
+          core.info(`Appended stack ${stackName} to existing CloudFormation PR comment`);
         } else {
-          // Create a new comment
+          // Create a new comment with both markers
+          const fullReport = `${genericMarker}\n${commentMarker}\n${markdownReport}`;
           await octokit.rest.issues.createComment({
             ...context.repo,
             issue_number: context.payload.pull_request.number,
-            body: reportWithMarker
+            body: fullReport
           });
           core.info(`Created new PR comment for stack: ${stackName}`);
         }
@@ -146,7 +174,7 @@ async function run() {
 }
 
 
-function generateMarkdownReport(changeset) {
+function generateActionReport(changeset) {
   let report = `\x1b[97m\x1b[1m── Cloudformation Changeset Report ──\x1b[0m\n\n`;
   
   const changes = changeset.Changes || [];
@@ -380,19 +408,9 @@ function generateMarkdownReport(changeset) {
 }
 
 /**
- * Helper function to log the report to console line by line
- */
-function logReport(report) {
-  const reportLines = report.split('\n');
-  reportLines.forEach(line => {
-    core.info(line);
-  });
-}
-
-/**
  * Creates a markdown formatted report without ANSI color codes
  */
-function createMarkdownReport(changeset) {
+function generatePRReport(changeset) {
   const changes = changeset.Changes || [];
   const totalCount = changes.length;
   
@@ -563,6 +581,16 @@ function createMarkdownReport(changeset) {
   }
   
   return markdown;
+}
+
+/**
+ * Helper function to log the report to console line by line
+ */
+function logReport(report) {
+  const reportLines = report.split('\n');
+  reportLines.forEach(line => {
+    core.info(line);
+  });
 }
 
 // Export for testing
