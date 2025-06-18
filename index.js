@@ -212,7 +212,7 @@ async function run() {
 
 function generateActionReport(changeset, stackName) {
   let report = `\x1b[97m\x1b[1m── Cloudformation Changeset Report ──\x1b[0m\n\n`;
-  report += `\x1b[97m\x1b[1m• ${stackName}\x1b[0m\n\n`;
+  report += `\x1b[97m• ${stackName}\x1b[0m\n\n`;
   const changes = changeset.Changes || [];
   const totalCount = changes.length;
   
