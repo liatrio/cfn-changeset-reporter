@@ -22,6 +22,7 @@ async function run() {
     });
 
     core.info(`Event Name: ${context.eventName}`);
+    core.info(`Stack Name: ${stackName}`);
 
     // If changeset name is not specified, get the latest one for the stack
     let actualChangesetName = changesetName;
