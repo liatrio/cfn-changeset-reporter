@@ -134,7 +134,8 @@ async function run() {
         core.info(`Found ${existingComments.data.length} total comments on this PR`);
         
         // Add markers to help identify our comments and stack sections
-        const stackMarker = `<!-- CloudFormation ChangeSets for stack: ${stackName} -->`;
+        const displayStackName = extractStackName(stackName);
+        const stackMarker = `<!-- CloudFormation ChangeSets for stack: ${displayStackName} -->`;
         const reportMarker = `<!-- CloudFormation ChangeSets Report -->`;
         
         // Look for an existing report comment (there should only be one)
@@ -154,7 +155,7 @@ async function run() {
           
           if (existingStackSection) {
             // Replace the existing stack section
-            core.info(`Updating existing section for stack: ${stackName}`);
+            core.info(`Updating existing section for stack: ${displayStackName}`);
             
             // Get content before and after the stack section
             const parts = existingReportComment.body.split(stackMarker);
@@ -188,17 +189,17 @@ async function run() {
             comment_id: existingReportComment.id,
             body: updatedBody
           });
-          core.info(`Updated CloudFormation PR comment with stack: ${stackName}`);
+          core.info(`Updated CloudFormation PR comment with stack: ${displayStackName}`);
         } else {
           // Create a new comment with the report title and this stack's section
-          core.info(`Creating new CloudFormation report comment with stack: ${stackName}`);
+          core.info(`Creating new CloudFormation report comment with stack: ${displayStackName}`);
           const fullReport = `${reportMarker}\n# CloudFormation Changeset Report\n\n${stackMarker}\n${markdownSection}`;
           await octokit.rest.issues.createComment({
             ...context.repo,
             issue_number: context.payload.pull_request.number,
             body: fullReport
           });
-          core.info(`Created new CloudFormation PR comment with stack: ${stackName}`);
+          core.info(`Created new CloudFormation PR comment with stack: ${displayStackName}`);
         }
         
         core.info("Successfully posted CloudFormation changeset report as PR comment");
@@ -488,7 +489,8 @@ function generatePRReport(changeset) {
   let markdown = `# CloudFormation Changeset Report\n\n`;
 
     // Add stack and changeset information
-  markdown += `> **Stack:** \`${changeset.StackName}\`  \n`;
+  const displayStackName = extractStackName(changeset.StackName);
+  markdown += `> **Stack:** \`${displayStackName}\`  \n`;
   markdown += `> **Changeset:** \`${changeset.ChangeSetName}\`  \n`;
   markdown += `> **Status:** \`${changeset.Status}\`  \n`;
   markdown += `> **Execution Status:** \`${changeset.ExecutionStatus || 'N/A'}\`\n\n`;
@@ -662,7 +664,8 @@ function generatePRSection(changeset, stackName) {
   });
   
   // Build markdown section (no title)
-  let markdown = `## Stack: \`${stackName}\`\n\n`;
+  const displayStackName = extractStackName(stackName);
+  let markdown = `## Stack: \`${displayStackName}\`\n\n`;
 
   // Add stack and changeset information
   markdown += `> **Changeset:** \`${changeset.ChangeSetName}\`  \n`;
@@ -741,6 +744,26 @@ function generatePRSection(changeset, stackName) {
   }
   
   return markdown;
+}
+
+/**
+ * Helper function to extract just the stack name from an ARN or return the input if it's just a name
+ * ARN format: arn:aws:cloudformation:region:account-id:stack/stack-name/unique-id
+ */
+function extractStackName(stackNameOrArn) {
+  if (!stackNameOrArn) return '';
+  
+  // Check if it's an ARN
+  if (stackNameOrArn.startsWith('arn:aws:cloudformation:')) {
+    // Extract the stack name from ARN format
+    const stackPart = stackNameOrArn.split(':stack/')[1];
+    if (stackPart) {
+      return stackPart.split('/')[0]; // Get just the stack name part
+    }
+  }
+  
+  // If not an ARN or parsing failed, return as is
+  return stackNameOrArn;
 }
 
 /**
