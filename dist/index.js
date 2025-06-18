@@ -74,7 +74,7 @@ async function run() {
       report += `\x1b[93mNo changesets found for stack ${stackName}.\x1b[0m\n`;
       report += `\x1b[93mEnsure the stack exists and has at least one changeset created.\x1b[0m\n`;
     } else {
-      report = generateActionReport(changeset);
+      report = generateActionReport(changeset, stackName);
     }
 
     
@@ -216,9 +216,9 @@ async function run() {
 }
 
 
-function generateActionReport(changeset) {
+function generateActionReport(changeset, stackName) {
   let report = `\x1b[97m\x1b[1m── Cloudformation Changeset Report ──\x1b[0m\n\n`;
-  
+  report += `\x1b[97m\x1b[1mStack Name: ${stackName}\x1b[0m\n\n`;
   const changes = changeset.Changes || [];
   const totalCount = changes.length;
   
