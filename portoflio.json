@@ -1,0 +1,116 @@
+{
+    "Changes": [
+        {
+            "Type": "Resource",
+            "ResourceChange": {
+                "Action": "Add",
+                "LogicalResourceId": "TemplateBucketPolicy",
+                "ResourceType": "AWS::S3::BucketPolicy",
+                "Scope": [],
+                "Details": []
+            }
+        },
+        {
+            "Type": "Resource",
+            "ResourceChange": {
+                "Action": "Modify",
+                "LogicalResourceId": "TemplateBucket",
+                "PhysicalResourceId": "sc-fa-ebrp-sandbox-product-cf-templates",
+                "ResourceType": "AWS::S3::Bucket",
+                "Replacement": "False",
+                "Scope": [
+                    "Metadata",
+                    "Properties"
+                ],
+                "Details": [
+                    {
+                        "Target": {
+                            "Attribute": "Metadata",
+                            "RequiresRecreation": "Never"
+                        },
+                        "Evaluation": "Static",
+                        "ChangeSource": "DirectModification"
+                    },
+                    {
+                        "Target": {
+                            "Attribute": "Properties",
+                            "Name": "LoggingConfiguration",
+                            "RequiresRecreation": "Never"
+                        },
+                        "Evaluation": "Static",
+                        "ChangeSource": "ParameterReference",
+                        "CausingEntity": "ServerAccessLogsDestinationBucket"
+                    },
+                    {
+                        "Target": {
+                            "Attribute": "Properties",
+                            "Name": "LoggingConfiguration",
+                            "RequiresRecreation": "Never"
+                        },
+                        "Evaluation": "Dynamic",
+                        "ChangeSource": "DirectModification"
+                    }
+                ]
+            }
+        }
+    ],
+    "ChangeSetName": "data-protection-portfolio-staging-15738750674",
+    "ChangeSetId": "arn:aws:cloudformation:us-east-2:015451699691:changeSet/data-protection-portfolio-staging-15738750674/d5fd3308-c80d-4e15-8aa5-dca16cef4f30",
+    "StackId": "arn:aws:cloudformation:us-east-2:015451699691:stack/data-protection-portfolio-staging/422667f0-429c-11f0-bcec-06e0fcffc2ad",
+    "StackName": "data-protection-portfolio-staging",
+    "Description": null,
+    "Parameters": [
+        {
+            "ParameterKey": "ProviderName",
+            "ParameterValue": "First American"
+        },
+        {
+            "ParameterKey": "PortfolioAccessRoleName",
+            "ParameterValue": "fa-ebrp-launch-products-staging"
+        },
+        {
+            "ParameterKey": "ServerAccessLogsDestinationBucket",
+            "ParameterValue": "fa-ebrp-015451699691-access-logs-bucket"
+        },
+        {
+            "ParameterKey": "PortfolioDisplayName",
+            "ParameterValue": "fa-ebrp-data-protection-portfolio-staging"
+        },
+        {
+            "ParameterKey": "PortfolioDescription",
+            "ParameterValue": "Bundled data protection products for the Enterprise Backup and Recovery Platform"
+        },
+        {
+            "ParameterKey": "TemplateBucketName",
+            "ParameterValue": "sc-fa-ebrp-sandbox-product-cf-templates"
+        }
+    ],
+    "CreationTime": "2025-06-18T16:47:00.858000+00:00",
+    "ExecutionStatus": "AVAILABLE",
+    "Status": "CREATE_COMPLETE",
+    "StatusReason": null,
+    "NotificationARNs": [],
+    "RollbackConfiguration": {},
+    "Capabilities": [
+        "CAPABILITY_NAMED_IAM"
+    ],
+    "Tags": [
+        {
+            "Key": "ResourceNameReference",
+            "Value": "EBRP"
+        },
+        {
+            "Key": "BusinessApplicationNumber",
+            "Value": "APM0002689"
+        },
+        {
+            "Key": "ApplicationServiceNumber",
+            "Value": "AS0000006838"
+        }
+    ],
+    "ParentChangeSetId": null,
+    "IncludeNestedStacks": false,
+    "RootChangeSetId": null,
+    "OnStackFailure": null,
+    "ImportExistingResources": null
+}

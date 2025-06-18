@@ -254,10 +254,22 @@ function generateActionReport(changeset, stackName) {
   report += `\x1b[97m\x1b[1m── Changes Summary (${totalCount}) ──\x1b[0m\n\n`;
   
   // Create summary with counts
-  report += `⛔ \x1b[31mResources to be removed:\x1b[0m ${replacementGroups['Removed resources'].length}  \n`;
-  report += `🔴 \x1b[91mResources requiring replacement:\x1b[0m ${replacementGroups['Will be replaced'].length}  \n`;
-  report += `🟡 \x1b[93mResources modified in-place:\x1b[0m ${replacementGroups['Modified without replacement'].length}  \n`;
-  report += `🟢 \x1b[92mNew resources to be created:\x1b[0m ${replacementGroups['New resources'].length}  \n\n`;
+  if(replacementGroups['Removed resources'].length > 0) {
+    report += `⛔ \x1b[31mResources to be removed:\x1b[0m ${replacementGroups['Removed resources'].length}  \n`;
+  }
+
+  if(replacementGroups['Will be replaced'].length > 0) {
+    report += `🔴 \x1b[91mResources requiring replacement:\x1b[0m ${replacementGroups['Will be replaced'].length}  \n`;
+  }
+
+  if(replacementGroups['Modified without replacement'].length > 0) {
+    report += `🟡 \x1b[93mResources modified in-place:\x1b[0m ${replacementGroups['Modified without replacement'].length}  \n`;
+  }
+
+  if(replacementGroups['New resources'].length > 0) {
+    report += `🟢 \x1b[92mNew resources to be created:\x1b[0m ${replacementGroups['New resources'].length}  \n\n`;
+  }
+  
   
   // Create a complete table with all changes
   if (totalCount > 0) {
@@ -487,10 +499,22 @@ function generatePRSection(changeset, stackName) {
   
   // Add summary section
   markdown += `### Changes Summary (${totalCount})\n\n`;
-  markdown += `- ⛔ **Resources to be removed:** ${replacementGroups['Removed resources'].length}\n`;
-  markdown += `- 🔴 **Resources requiring replacement:** ${replacementGroups['Will be replaced'].length}\n`;
-  markdown += `- 🟡 **Resources modified in-place:** ${replacementGroups['Modified without replacement'].length}\n`;
-  markdown += `- 🟢 **New resources to be created:** ${replacementGroups['New resources'].length}\n\n`;
+
+  if (replacementGroups['Removed resources'].length > 0) {
+    markdown += `- ⛔ **Resources to be removed:** ${replacementGroups['Removed resources'].length}\n`;
+  }
+
+  if (replacementGroups['Will be replaced'].length > 0) {
+    markdown += `- 🔴 **Resources requiring replacement:** ${replacementGroups['Will be replaced'].length}\n`;
+  }
+  
+  if (replacementGroups['Modified without replacement'].length > 0) {
+    markdown += `- 🟡 **Resources modified in-place:** ${replacementGroups['Modified without replacement'].length}\n`;
+  }
+
+  if(replacementGroups['New resources'].length > 0) {
+    markdown += `- 🟢 **New resources to be created:** ${replacementGroups['New resources'].length}\n\n`;
+  }
   
   // Add table of all changes
   if (totalCount > 0) {

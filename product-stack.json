@@ -1,0 +1,155 @@
+{
+    "Changes": [
+        {
+            "Type": "Resource",
+            "ResourceChange": {
+                "Action": "Modify",
+                "LogicalResourceId": "LaunchConstraint",
+                "PhysicalResourceId": "cons-yg4nujf6hm4em",
+                "ResourceType": "AWS::ServiceCatalog::LaunchRoleConstraint",
+                "Replacement": "Conditional",
+                "Scope": [
+                    "Properties"
+                ],
+                "Details": [
+                    {
+                        "Target": {
+                            "Attribute": "Properties",
+                            "Name": "ProductId",
+                            "RequiresRecreation": "Conditionally"
+                        },
+                        "Evaluation": "Dynamic",
+                        "ChangeSource": "ResourceReference",
+                        "CausingEntity": "Product"
+                    }
+                ]
+            }
+        },
+        {
+            "Type": "Resource",
+            "ResourceChange": {
+                "Action": "Modify",
+                "LogicalResourceId": "ProductAssociation",
+                "PhysicalResourceId": "port-ctxie3duuibxk|prod-ol243g6fe5bng",
+                "ResourceType": "AWS::ServiceCatalog::PortfolioProductAssociation",
+                "Replacement": "Conditional",
+                "Scope": [
+                    "Properties"
+                ],
+                "Details": [
+                    {
+                        "Target": {
+                            "Attribute": "Properties",
+                            "Name": "ProductId",
+                            "RequiresRecreation": "Conditionally"
+                        },
+                        "Evaluation": "Dynamic",
+                        "ChangeSource": "ResourceReference",
+                        "CausingEntity": "Product"
+                    }
+                ]
+            }
+        },
+        {
+            "Type": "Resource",
+            "ResourceChange": {
+                "Action": "Modify",
+                "LogicalResourceId": "Product",
+                "PhysicalResourceId": "prod-ol243g6fe5bng",
+                "ResourceType": "AWS::ServiceCatalog::CloudFormationProduct",
+                "Replacement": "Conditional",
+                "Scope": [
+                    "Properties"
+                ],
+                "Details": [
+                    {
+                        "Target": {
+                            "Attribute": "Properties",
+                            "Name": "ProvisioningArtifactParameters",
+                            "RequiresRecreation": "Conditionally"
+                        },
+                        "Evaluation": "Static",
+                        "ChangeSource": "ParameterReference",
+                        "CausingEntity": "ProductVersion"
+                    },
+                    {
+                        "Target": {
+                            "Attribute": "Properties",
+                            "Name": "ProvisioningArtifactParameters",
+                            "RequiresRecreation": "Conditionally"
+                        },
+                        "Evaluation": "Dynamic",
+                        "ChangeSource": "DirectModification"
+                    }
+                ]
+            }
+        }
+    ],
+    "ChangeSetName": "data-protection-s3-bucket-product-staging-15738750674",
+    "ChangeSetId": "arn:aws:cloudformation:us-east-2:015451699691:changeSet/data-protection-s3-bucket-product-staging-15738750674/2aa9b618-e4ea-4abe-9e37-1171ea68b542",
+    "StackId": "arn:aws:cloudformation:us-east-2:015451699691:stack/data-protection-s3-bucket-product-staging/58a11b10-429c-11f0-85de-0279c473d21b",
+    "StackName": "data-protection-s3-bucket-product-staging",
+    "Description": null,
+    "Parameters": [
+        {
+            "ParameterKey": "ProviderName",
+            "ParameterValue": "First American"
+        },
+        {
+            "ParameterKey": "ProductLaunchConstraintRole",
+            "ParameterValue": "launch-constraint-s3-bucket-staging"
+        },
+        {
+            "ParameterKey": "ProductName",
+            "ParameterValue": "fa-ebrp-data-protection-s3-bucket-product-staging"
+        },
+        {
+            "ParameterKey": "ProductTemplate",
+            "ParameterValue": "s3/bucket.yaml"
+        },
+        {
+            "ParameterKey": "PortfolioId",
+            "ParameterValue": "port-ctxie3duuibxk"
+        },
+        {
+            "ParameterKey": "ProductDescription",
+            "ParameterValue": "Service Catalog product for the Enterprise Backup and Recovery Platform"
+        },
+        {
+            "ParameterKey": "ProductVersion",
+            "ParameterValue": "v1.1.1"
+        },
+        {
+            "ParameterKey": "TemplateBucketName",
+            "ParameterValue": "sc-fa-ebrp-sandbox-product-cf-templates"
+        }
+    ],
+    "CreationTime": "2025-06-18T16:47:23.447000+00:00",
+    "ExecutionStatus": "AVAILABLE",
+    "Status": "CREATE_COMPLETE",
+    "StatusReason": null,
+    "NotificationARNs": [],
+    "RollbackConfiguration": {},
+    "Capabilities": [
+        "CAPABILITY_IAM"
+    ],
+    "Tags": [
+        {
+            "Key": "ResourceNameReference",
+            "Value": "EBRP"
+        },
+        {
+            "Key": "BusinessApplicationNumber",
+            "Value": "APM0002689"
+        },
+        {
+            "Key": "ApplicationServiceNumber",
+            "Value": "AS0000006838"
+        }
+    ],
+    "ParentChangeSetId": null,
+    "IncludeNestedStacks": false,
+    "RootChangeSetId": null,
+    "OnStackFailure": null,
+    "ImportExistingResources": null
+}
