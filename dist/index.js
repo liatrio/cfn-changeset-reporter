@@ -64,8 +64,11 @@ async function run() {
     // Always log the report for visibility in GitHub Actions logs
     logReport(report);
     
-    // If this is a PR, try to comment as well
-    if (context.eventName === 'pull_request' || context.eventName === 'pull_request_target') {
+    // Check if we should comment on PRs
+    const commentOnPR = core.getInput('comment-on-pr').toLowerCase() !== 'false';
+    
+    // If this is a PR and commenting is enabled, try to comment as well
+    if ((context.eventName === 'pull_request' || context.eventName === 'pull_request_target') && commentOnPR) {
       try {
         core.info('PR detected, attempting to add changeset report as a comment...');
         

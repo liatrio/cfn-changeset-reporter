@@ -73,6 +73,8 @@ jobs:
 | `aws-region` | AWS region to connect to | Yes | `us-east-1` |
 | `stack-name` | Name of the CloudFormation stack | Yes | - |
 | `changeset-name` | Name of the changeset to report on | No | Latest changeset |
+| `github-token` | GitHub token for commenting on PRs | No | `${{ github.token }}` |
+| `comment-on-pr` | Whether to comment on PRs with the report | No | `true` |
 
 ## Outputs
 
@@ -125,7 +127,26 @@ Resources are grouped and color-coded by their impact:
 
 ## PR Commenting Feature
 
-When this action runs in a pull request context, it can automatically add the changeset report as a comment on the PR. To enable this feature:
+When this action runs in a pull request context, it can automatically add the changeset report as a comment on the PR.
+
+The PR commenting feature is:
+
+- **Enabled by default** - Works automatically on PR events
+- **Optional** - Can be disabled with `comment-on-pr: false`
+- **Consolidated** - Multiple stacks will be reported in a single comment
+
+### Disabling PR Comments
+
+If you want to disable PR comments, set `comment-on-pr` to `false`:
+
+```yaml
+- name: Report CloudFormation Changes
+  uses: liatrio/cfn-changeset-reporter@v1
+  with:
+    aws-region: us-east-1
+    stack-name: my-stack
+    comment-on-pr: false
+```
 
 ### Comment Update Behavior
 
