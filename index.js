@@ -19,6 +19,8 @@ async function run() {
 
     // If changeset name is not specified, get the latest one for the stack
     let actualChangesetName = changesetName;
+    let noChangesetFound = false;
+    
     if (!actualChangesetName) {
       core.info('No changeset name provided, finding the latest one...');
       const listResult = await cloudformation.listChangeSets({ StackName: stackName });
@@ -31,32 +33,57 @@ async function run() {
         actualChangesetName = listResult.Summaries[0].ChangeSetName;
         core.info(`Using latest changeset: ${actualChangesetName}`);
       } else {
-        throw new Error(`No changesets found for stack ${stackName}`);
+        core.warning(`No changesets found for stack ${stackName}`);
+        noChangesetFound = true;
       }
     }
 
-    // Get changeset details
-    const params = {
-      ChangeSetName: actualChangesetName,
-      StackName: stackName
-    };
+    // Initialize changeset variable
+    let changeset;
     
-    const changeset = await cloudformation.describeChangeSet(params);
+    if (noChangesetFound) {
+      // Create a minimal changeset object with required fields
+      changeset = {
+        StackName: stackName,
+        Status: 'NONE',
+        ExecutionStatus: 'UNAVAILABLE',
+        ChangeSetName: 'NO_CHANGESETS',
+        Changes: []
+      };
+    } else {
+      // Get changeset details
+      const params = {
+        ChangeSetName: actualChangesetName,
+        StackName: stackName
+      };
+      
+      changeset = await cloudformation.describeChangeSet(params);
+    }
     
     // Generate report based on output format
     let report;
     
-    report = generateActionReport(changeset);
+    if (noChangesetFound) {
+      report = `\x1b[97m\x1b[1m── Cloudformation Changeset Report ──\x1b[0m\n\n`;
+      report += `\x1b[93mNo changesets found for stack ${stackName}.\x1b[0m\n`;
+      report += `\x1b[93mEnsure the stack exists and has at least one changeset created.\x1b[0m\n`;
+    } else {
+      report = generateActionReport(changeset);
+    }
 
     
     
     // Set outputs first
     core.setOutput('report', report);
-    core.setOutput('changeset-name', actualChangesetName);
+    core.setOutput('changeset-name', noChangesetFound ? 'NO_CHANGESETS' : actualChangesetName);
     core.setOutput('changeset-status', changeset.Status);
     
     // Always log the report for visibility in GitHub Actions logs
     logReport(report);
+    
+    if (noChangesetFound) {
+      core.info(`No changesets found for stack ${stackName}. Continuing execution.`);
+    }
     
     // Check if we should comment on PRs
     const commentOnPR = core.getInput('comment-on-pr').toLowerCase() !== 'false';
@@ -67,7 +94,21 @@ async function run() {
         core.info('PR detected, attempting to add changeset report as a comment...');
         
         // Create a markdown version without ANSI color codes
-        const markdownReport = generatePRReport(changeset);
+        let markdownReport;
+        
+        if (noChangesetFound) {
+          markdownReport = `# CloudFormation Changeset Report\n\n`;
+          markdownReport += `> **Stack:** \`${stackName}\`  \n`;
+          markdownReport += `> **Status:** \`NO_CHANGESETS\`  \n\n`;
+          markdownReport += `## No Changesets Found\n\n`;
+          markdownReport += `No changesets were found for this stack. This could mean:\n\n`;
+          markdownReport += `- The stack doesn't have any pending changes\n`;
+          markdownReport += `- The stack might not exist\n`;
+          markdownReport += `- All changesets have been executed or deleted\n\n`;
+          markdownReport += `Try creating a new changeset for this stack if you need to make changes.`;
+        } else {
+          markdownReport = generatePRReport(changeset);
+        }
         
         // Get the token and check permissions
         const token = core.getInput('github-token');
