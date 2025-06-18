@@ -89,27 +89,15 @@ async function run() {
     // Check if we should comment on PRs
     const commentOnPR = core.getInput('comment-on-pr').toLowerCase() !== 'false';
     
-    // If this is a PR and commenting is enabled, try to comment as well
-    if ((context.eventName === 'pull_request' || context.eventName === 'pull_request_target') && commentOnPR) {
+    // If this is a PR and commenting is enabled, and we found a changeset, try to comment
+    if ((context.eventName === 'pull_request' || context.eventName === 'pull_request_target') && 
+        commentOnPR && 
+        !noChangesetFound) { // Only comment if we found a changeset
       try {
         core.info('PR detected, attempting to add changeset report as a comment...');
         
-        // Create a markdown version without ANSI color codes
-        let markdownReport;
-        
-        if (noChangesetFound) {
-          markdownReport = `# CloudFormation Changeset Report\n\n`;
-          markdownReport += `> **Stack:** \`${stackName}\`  \n`;
-          markdownReport += `> **Status:** \`NO_CHANGESETS\`  \n\n`;
-          markdownReport += `## No Changesets Found\n\n`;
-          markdownReport += `No changesets were found for this stack. This could mean:\n\n`;
-          markdownReport += `- The stack doesn't have any pending changes\n`;
-          markdownReport += `- The stack might not exist\n`;
-          markdownReport += `- All changesets have been executed or deleted\n\n`;
-          markdownReport += `Try creating a new changeset for this stack if you need to make changes.`;
-        } else {
-          markdownReport = generatePRReport(changeset);
-        }
+        // Create a markdown section for this stack (without title)
+        const markdownSection = generatePRSection(changeset, stackName);
         
         // Get the token and check permissions
         const token = core.getInput('github-token');
@@ -139,62 +127,72 @@ async function run() {
 
         core.info(`Found ${existingComments.data.length} total comments on this PR`);
         
-        // Add a hidden marker to help identify our comments
-        const commentMarker = `<!-- CloudFormation ChangeSets for stack: ${stackName} -->`;
-        const genericMarker = `<!-- CloudFormation ChangeSets Report -->`;
-        const reportWithMarker = `${commentMarker}\n${markdownReport}`;
+        // Add markers to help identify our comments and stack sections
+        const stackMarker = `<!-- CloudFormation ChangeSets for stack: ${stackName} -->`;
+        const reportMarker = `<!-- CloudFormation ChangeSets Report -->`;
         
-        // First, check if we have an existing comment for this specific stack
-        const existingStackComment = existingComments.data.find(
-          comment => comment.body && comment.body.includes(commentMarker)
+        // Look for an existing report comment (there should only be one)
+        const existingReportComment = existingComments.data.find(
+          comment => comment.body && comment.body.includes(reportMarker)
         );
         
-        // Next, check if we have any CloudFormation changeset comment for any stack
-        const anyCfnComment = existingComments.data.find(
-          comment => comment.body && (
-            comment.body.includes(genericMarker) ||
-            comment.body.includes('# CloudFormation Changeset Report')
-          )
-        );
+        // Also search for specific stack markers so we can replace them
+        const existingStackSection = (existingReportComment && existingReportComment.body) ?
+          existingReportComment.body.includes(stackMarker) : false;
         
-        if (existingStackComment) {
-          // Update the existing comment for this stack
-          core.info(`Found existing comment (ID: ${existingStackComment.id}) for stack: ${stackName}`);
-          await octokit.rest.issues.updateComment({
-            ...context.repo,
-            comment_id: existingStackComment.id,
-            body: reportWithMarker
-          });
-          core.info(`Updated existing PR comment for stack: ${stackName}`);
-        } else if (anyCfnComment) {
-          // Append this stack's report to an existing CloudFormation changeset comment
-          core.info(`Found existing CloudFormation comment (ID: ${anyCfnComment.id}). Appending stack: ${stackName}`);
+        if (existingReportComment) {
+          // Found an existing CloudFormation report comment
+          core.info(`Found existing CloudFormation report comment (ID: ${existingReportComment.id})`);
           
-          // Check if the comment already has our generic marker
           let updatedBody;
-          if (!anyCfnComment.body.includes(genericMarker)) {
-            // Add the generic marker if it doesn't exist
-            updatedBody = `${genericMarker}\n${anyCfnComment.body}\n\n---\n\n${markdownReport}`;
+          
+          if (existingStackSection) {
+            // Replace the existing stack section
+            core.info(`Updating existing section for stack: ${stackName}`);
+            
+            // Get content before and after the stack section
+            const parts = existingReportComment.body.split(stackMarker);
+            let beforeStack = parts[0];
+            let afterStack = '';
+            
+            if (parts.length > 1) {
+              // Find the end of this stack's section - either the next marker or end of the comment
+              const rest = parts[1];
+              const nextMarkerPos = rest.indexOf('<!-- CloudFormation ChangeSets for stack:');
+              
+              if (nextMarkerPos !== -1) {
+                afterStack = rest.substring(nextMarkerPos);
+                // Keep the content including and after the next marker
+              } else {
+                afterStack = ''; // No next marker, this was the last section
+              }
+            }
+            
+            // Construct the updated body
+            updatedBody = beforeStack + stackMarker + '\n' + markdownSection + '\n\n' + afterStack;
           } else {
-            // Otherwise just append the new report
-            updatedBody = `${anyCfnComment.body}\n\n---\n\n${commentMarker}\n${markdownReport}`;
+            // Append a new stack section
+            core.info(`Adding new section for stack: ${stackName}`);
+            updatedBody = existingReportComment.body + '\n\n' + stackMarker + '\n' + markdownSection;
           }
           
+          // Update the existing comment with the new/updated content
           await octokit.rest.issues.updateComment({
             ...context.repo,
-            comment_id: anyCfnComment.id,
+            comment_id: existingReportComment.id,
             body: updatedBody
           });
-          core.info(`Appended stack ${stackName} to existing CloudFormation PR comment`);
+          core.info(`Updated CloudFormation PR comment with stack: ${stackName}`);
         } else {
-          // Create a new comment with both markers
-          const fullReport = `${genericMarker}\n${commentMarker}\n${markdownReport}`;
+          // Create a new comment with the report title and this stack's section
+          core.info(`Creating new CloudFormation report comment with stack: ${stackName}`);
+          const fullReport = `${reportMarker}\n# CloudFormation Changeset Report\n\n${stackMarker}\n${markdownSection}`;
           await octokit.rest.issues.createComment({
             ...context.repo,
             issue_number: context.payload.pull_request.number,
             body: fullReport
           });
-          core.info(`Created new PR comment for stack: ${stackName}`);
+          core.info(`Created new CloudFormation PR comment with stack: ${stackName}`);
         }
         
         core.info("Successfully posted CloudFormation changeset report as PR comment");
@@ -447,7 +445,8 @@ function generateActionReport(changeset) {
 }
 
 /**
- * Creates a markdown formatted report without ANSI color codes
+ * Creates a full markdown formatted report without ANSI color codes
+ * Note: This is kept for backwards compatibility, but new code should use generatePRSection
  */
 function generatePRReport(changeset) {
   const changes = changeset.Changes || [];
@@ -617,6 +616,122 @@ function generatePRReport(changeset) {
     }
   } else {
     markdown += 'No changes detected.\n';
+  }
+  
+  return markdown;
+}
+
+/**
+ * Creates a markdown formatted section for a stack's changeset without the main title
+ * This will be used to create sections within a single report
+ */
+function generatePRSection(changeset, stackName) {
+  const changes = changeset.Changes || [];
+  const totalCount = changes.length;
+  
+  // Group resources like in the original report
+  const replacementGroups = {
+    'Will be replaced': [],
+    'Modified without replacement': [],
+    'New resources': [],
+    'Removed resources': []
+  };
+  
+  // Categorize changes
+  changes.forEach((change, i) => {
+    const resource = change.ResourceChange;
+    const needsReplacement = resource.Replacement === 'True' || resource.Replacement === 'Conditional';
+    const isAdd = resource.Action === 'Add';
+    const isRemove = resource.Action === 'Remove';
+    
+    if (isRemove) {
+      replacementGroups['Removed resources'].push({ index: i+1, resource, change });
+    } else if (needsReplacement) {
+      replacementGroups['Will be replaced'].push({ index: i+1, resource, change });
+    } else if (isAdd) {
+      replacementGroups['New resources'].push({ index: i+1, resource, change });
+    } else {
+      replacementGroups['Modified without replacement'].push({ index: i+1, resource, change });
+    }
+  });
+  
+  // Build markdown section (no title)
+  let markdown = `## Stack: \`${stackName}\`\n\n`;
+
+  // Add stack and changeset information
+  markdown += `> **Changeset:** \`${changeset.ChangeSetName}\`  \n`;
+  markdown += `> **Status:** \`${changeset.Status}\`  \n`;
+  markdown += `> **Execution Status:** \`${changeset.ExecutionStatus || 'N/A'}\`\n\n`;
+  
+  // Add summary section
+  markdown += `### Changes Summary (${totalCount})\n\n`;
+  markdown += `- ⛔ **Resources to be removed:** ${replacementGroups['Removed resources'].length}\n`;
+  markdown += `- 🔴 **Resources requiring replacement:** ${replacementGroups['Will be replaced'].length}\n`;
+  markdown += `- 🟡 **Resources modified in-place:** ${replacementGroups['Modified without replacement'].length}\n`;
+  markdown += `- 🟢 **New resources to be created:** ${replacementGroups['New resources'].length}\n\n`;
+  
+  // Add table of all changes
+  if (totalCount > 0) {
+    markdown += `### All Changes\n\n`;
+    markdown += `| # | Resource | Type | Action | Replacement |\n`;
+    markdown += `|---|---------|------|--------|-------------|\n`;
+    
+    changes.forEach((change, i) => {
+      const resource = change.ResourceChange;
+      const needsReplacement = resource.Replacement === 'True' || resource.Replacement === 'Conditional';
+      const isAdd = resource.Action === 'Add';
+      const isRemove = resource.Action === 'Remove';
+      
+      let emoji = '⚪';
+      if (isRemove) emoji = '⛔';
+      else if (needsReplacement) emoji = '🔴';
+      else if (isAdd) emoji = '🟢';
+      else emoji = '🟡';
+      
+      markdown += `| ${i+1} | ${emoji} ${resource.LogicalResourceId} | ${resource.ResourceType} | ${resource.Action} | ${resource.Replacement || 'N/A'} |\n`;
+    });
+  
+    // Resources requiring replacement (only if there are some)
+    if (replacementGroups['Will be replaced'].length > 0) {
+      markdown += `\n#### 🔴 Resources Requiring Replacement (${replacementGroups['Will be replaced'].length})\n\n`;
+      
+      replacementGroups['Will be replaced'].forEach(({ resource, change }, localIndex) => {
+        markdown += `**${localIndex + 1}. ${resource.LogicalResourceId} (${resource.ResourceType})**\n`;
+        markdown += `- **Action:** ${resource.Action}\n`;
+        markdown += `- **Replacement:** ${resource.Replacement}\n`;
+        
+        // Highlight what's causing the replacement
+        markdown += `- **⚠️ Replacement Reason:**\n`;
+        
+        if (resource.Details && resource.Details.length > 0) {
+          const replacementCauses = resource.Details.filter(detail => 
+            detail.Evaluation === 'Dynamic' || 
+            detail.Target.RequiresRecreation === 'Always' ||
+            detail.Target.RequiresRecreation === 'Conditionally'
+          );
+          
+          if (replacementCauses.length > 0) {
+            replacementCauses.forEach(detail => {
+              markdown += `  - Property \`${detail.Target.Name}\` requires recreation (${detail.Target.RequiresRecreation})\n`;
+            });
+          } else {
+            markdown += `  - Implicit replacement due to dependent resource changes\n`;
+          }
+          
+          markdown += `\n- **All Property Changes:**\n`;
+          resource.Details.forEach(detail => {
+            const isReplacementCause = detail.Target.RequiresRecreation === 'Always' || 
+                                      detail.Target.RequiresRecreation === 'Conditionally';
+            const prefix = isReplacementCause ? '⚠️ ' : '';
+            markdown += `  - ${prefix}${detail.Target.Name}: ${detail.ChangeSource} (${detail.Target.Attribute})\n`;
+          });
+        }
+        
+        markdown += '\n';
+      });
+    }
+  } else {
+    markdown += 'No changes detected.';
   }
   
   return markdown;
