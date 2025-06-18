@@ -15,15 +15,12 @@ async function run() {
       region: awsRegion
     });
 
-    core.info(`Event Name: ${context.eventName}`);
-    core.info(`Stack Name: ${stackName}`);
-
     // If changeset name is not specified, get the latest one for the stack
     let actualChangesetName = changesetName;
     let noChangesetFound = false;
     
     if (!actualChangesetName) {
-      core.info('No changeset name provided, finding the latest one...');
+      core.debug('No changeset name provided, finding the latest one...');
       const listResult = await cloudformation.listChangeSets({ StackName: stackName });
       
       if (listResult.Summaries && listResult.Summaries.length > 0) {
@@ -32,7 +29,7 @@ async function run() {
           new Date(b.CreationTime) - new Date(a.CreationTime)
         );
         actualChangesetName = listResult.Summaries[0].ChangeSetName;
-        core.info(`Using latest changeset: ${actualChangesetName}`);
+        core.debug(`Using latest changeset: ${actualChangesetName}`);
       } else {
         core.warning(`No changesets found for stack ${stackName}`);
         noChangesetFound = true;
@@ -94,7 +91,7 @@ async function run() {
         commentOnPR && 
         !noChangesetFound) { // Only comment if we found a changeset
       try {
-        core.info('PR detected, attempting to add changeset report as a comment...');
+        core.debug('PR detected, attempting to add changeset report as a comment...');
         
         // Create a markdown section for this stack (without title)
         const markdownSection = generatePRSection(changeset, stackName);
@@ -125,7 +122,7 @@ async function run() {
         });
         
 
-        core.info(`Found ${existingComments.data.length} total comments on this PR`);
+        core.debug(`Found ${existingComments.data.length} total comments on this PR`);
         
         // Add markers to help identify our comments and stack sections
         const displayStackName = extractStackName(stackName);
@@ -143,13 +140,13 @@ async function run() {
         
         if (existingReportComment) {
           // Found an existing CloudFormation report comment
-          core.info(`Found existing CloudFormation report comment (ID: ${existingReportComment.id})`);
+          core.debug(`Found existing CloudFormation report comment (ID: ${existingReportComment.id})`);
           
           let updatedBody;
           
           if (existingStackSection) {
             // Replace the existing stack section
-            core.info(`Updating existing section for stack: ${displayStackName}`);
+            core.debug(`Updating existing section for stack: ${displayStackName}`);
             
             // Get content before and after the stack section
             const parts = existingReportComment.body.split(stackMarker);
@@ -173,7 +170,7 @@ async function run() {
             updatedBody = beforeStack + stackMarker + '\n' + markdownSection + '\n\n' + afterStack;
           } else {
             // Append a new stack section
-            core.info(`Adding new section for stack: ${stackName}`);
+            core.debug(`Adding new section for stack: ${stackName}`);
             updatedBody = existingReportComment.body + '\n\n' + stackMarker + '\n' + markdownSection;
           }
           
@@ -183,20 +180,20 @@ async function run() {
             comment_id: existingReportComment.id,
             body: updatedBody
           });
-          core.info(`Updated CloudFormation PR comment with stack: ${displayStackName}`);
+          core.debug(`Updated CloudFormation PR comment with stack: ${displayStackName}`);
         } else {
           // Create a new comment with the report title and this stack's section
-          core.info(`Creating new CloudFormation report comment with stack: ${displayStackName}`);
+          core.debug(`Creating new CloudFormation report comment with stack: ${displayStackName}`);
           const fullReport = `${reportMarker}\n# CloudFormation Changeset Report\n\n${stackMarker}\n${markdownSection}`;
           await octokit.rest.issues.createComment({
             ...context.repo,
             issue_number: context.payload.pull_request.number,
             body: fullReport
           });
-          core.info(`Created new CloudFormation PR comment with stack: ${displayStackName}`);
+          core.debug(`Created new CloudFormation PR comment with stack: ${displayStackName}`);
         }
         
-        core.info("Successfully posted CloudFormation changeset report as PR comment");
+        core.debug("Successfully posted CloudFormation changeset report as PR comment");
       } catch (error) {
         core.warning(`Failed to comment on PR: ${error.message}`);
         core.warning('To fix this, ensure your workflow has the necessary permissions:');
@@ -443,184 +440,6 @@ function generateActionReport(changeset) {
   }
   
   return report;
-}
-
-/**
- * Creates a full markdown formatted report without ANSI color codes
- * Note: This is kept for backwards compatibility, but new code should use generatePRSection
- */
-function generatePRReport(changeset) {
-  const changes = changeset.Changes || [];
-  const totalCount = changes.length;
-  
-  // Group resources like in the original report
-  const replacementGroups = {
-    'Will be replaced': [],
-    'Modified without replacement': [],
-    'New resources': [],
-    'Removed resources': []
-  };
-  
-  // Categorize changes
-  changes.forEach((change, i) => {
-    const resource = change.ResourceChange;
-    const needsReplacement = resource.Replacement === 'True' || resource.Replacement === 'Conditional';
-    const isAdd = resource.Action === 'Add';
-    const isRemove = resource.Action === 'Remove';
-    
-    if (isRemove) {
-      replacementGroups['Removed resources'].push({ index: i+1, resource, change });
-    } else if (needsReplacement) {
-      replacementGroups['Will be replaced'].push({ index: i+1, resource, change });
-    } else if (isAdd) {
-      replacementGroups['New resources'].push({ index: i+1, resource, change });
-    } else {
-      replacementGroups['Modified without replacement'].push({ index: i+1, resource, change });
-    }
-  });
-  
-  // Build markdown report
-  let markdown = `# CloudFormation Changeset Report\n\n`;
-
-    // Add stack and changeset information
-  const displayStackName = extractStackName(changeset.StackName);
-  markdown += `> **Stack:** \`${displayStackName}\`  \n`;
-  markdown += `> **Changeset:** \`${changeset.ChangeSetName}\`  \n`;
-  markdown += `> **Status:** \`${changeset.Status}\`  \n`;
-  markdown += `> **Execution Status:** \`${changeset.ExecutionStatus || 'N/A'}\`\n\n`;
-  
-  // Add summary section
-  markdown += `## Changes Summary (${totalCount})\n\n`;
-  markdown += `- ⛔ **Resources to be removed:** ${replacementGroups['Removed resources'].length}\n`;
-  markdown += `- 🔴 **Resources requiring replacement:** ${replacementGroups['Will be replaced'].length}\n`;
-  markdown += `- 🟡 **Resources modified in-place:** ${replacementGroups['Modified without replacement'].length}\n`;
-  markdown += `- 🟢 **New resources to be created:** ${replacementGroups['New resources'].length}\n\n`;
-  
-  // Add table of all changes
-  if (totalCount > 0) {
-    markdown += `## All Changes\n\n`;
-    markdown += `| # | Resource | Type | Action | Replacement |\n`;
-    markdown += `|---|---------|------|--------|-------------|\n`;
-    
-    changes.forEach((change, i) => {
-      const resource = change.ResourceChange;
-      const needsReplacement = resource.Replacement === 'True' || resource.Replacement === 'Conditional';
-      const isAdd = resource.Action === 'Add';
-      const isRemove = resource.Action === 'Remove';
-      
-      let emoji = '⚪';
-      if (isRemove) emoji = '⛔';
-      else if (needsReplacement) emoji = '🔴';
-      else if (isAdd) emoji = '🟢';
-      else emoji = '🟡';
-      
-      markdown += `| ${i+1} | ${emoji} ${resource.LogicalResourceId} | ${resource.ResourceType} | ${resource.Action} | ${resource.Replacement || 'N/A'} |\n`;
-    });
-    
-    // Resources Requiring Replacement section
-    if (replacementGroups['Will be replaced'].length > 0) {
-      markdown += `\n## 🔴 Resources Requiring Replacement (${replacementGroups['Will be replaced'].length})\n\n`;
-      
-      replacementGroups['Will be replaced'].forEach(({ resource, change }, localIndex) => {
-        markdown += `### ${localIndex + 1}. ${resource.LogicalResourceId} (${resource.ResourceType})\n`;
-        markdown += `- **Action:** ${resource.Action}\n`;
-        markdown += `- **Replacement:** ${resource.Replacement}\n`;
-        
-        // Highlight what's causing the replacement
-        markdown += `- **⚠️ Replacement Reason:**\n`;
-        
-        if (resource.Details && resource.Details.length > 0) {
-          const replacementCauses = resource.Details.filter(detail => 
-            detail.Evaluation === 'Dynamic' || 
-            detail.Target.RequiresRecreation === 'Always' ||
-            detail.Target.RequiresRecreation === 'Conditionally'
-          );
-          
-          if (replacementCauses.length > 0) {
-            replacementCauses.forEach(detail => {
-              markdown += `  - Property \`${detail.Target.Name}\` requires recreation (${detail.Target.RequiresRecreation})\n`;
-            });
-          } else {
-            markdown += `  - Implicit replacement due to dependent resource changes\n`;
-          }
-          
-          markdown += `\n- **All Property Changes:**\n`;
-          resource.Details.forEach(detail => {
-            const isReplacementCause = detail.Target.RequiresRecreation === 'Always' || 
-                                      detail.Target.RequiresRecreation === 'Conditionally';
-            const prefix = isReplacementCause ? '⚠️ ' : '';
-            markdown += `  - ${prefix}${detail.Target.Name}: ${detail.ChangeSource} (${detail.Target.Attribute})\n`;
-          });
-        }
-        
-        markdown += '\n';
-      });
-    }
-    
-    // Modified resources section
-    if (replacementGroups['Modified without replacement'].length > 0) {
-      markdown += `\n## 🟡 Resources Modified In-Place (${replacementGroups['Modified without replacement'].length})\n\n`;
-      
-      replacementGroups['Modified without replacement'].forEach(({ resource, change }, localIndex) => {
-        markdown += `### ${localIndex + 1}. ${resource.LogicalResourceId} (${resource.ResourceType})\n`;
-        markdown += `- **Action:** ${resource.Action}\n`;
-        markdown += `- **Replacement:** ${resource.Replacement || 'N/A'}\n`;
-        
-        if (resource.Details && resource.Details.length > 0) {
-          markdown += `- **Property Changes:**\n`;
-          resource.Details.forEach(detail => {
-            markdown += `  - ${detail.Target.Name}: ${detail.ChangeSource} (${detail.Target.Attribute})\n`;
-          });
-        }
-        
-        markdown += '\n';
-      });
-    }
-    
-    // New resources section
-    if (replacementGroups['New resources'].length > 0) {
-      markdown += `\n## 🟢 New Resources (${replacementGroups['New resources'].length})\n\n`;
-      
-      replacementGroups['New resources'].forEach(({ resource, change }, localIndex) => {
-        markdown += `### ${localIndex + 1}. ${resource.LogicalResourceId} (${resource.ResourceType})\n`;
-        markdown += `- **Action:** ${resource.Action}\n`;
-        
-        // For new resources, we might not have details but can include them if available
-        if (resource.Details && resource.Details.length > 0) {
-          markdown += `- **Property Details:**\n`;
-          resource.Details.forEach(detail => {
-            markdown += `  - ${detail.Target.Name}: ${detail.ChangeSource} (${detail.Target.Attribute})\n`;
-          });
-        }
-        
-        markdown += '\n';
-      });
-    }
-    
-    // Removed resources section
-    if (replacementGroups['Removed resources'].length > 0) {
-      markdown += `\n## ⛔ Resources Being Removed (${replacementGroups['Removed resources'].length})\n\n`;
-      
-      replacementGroups['Removed resources'].forEach(({ resource, change }, localIndex) => {
-        markdown += `### ${localIndex + 1}. ${resource.LogicalResourceId} (${resource.ResourceType})\n`;
-        markdown += `- **Action:** ${resource.Action}\n`;
-        
-        // For removed resources, show any available details
-        if (resource.Details && resource.Details.length > 0) {
-          markdown += `- **Resource Details:**\n`;
-          resource.Details.forEach(detail => {
-            markdown += `  - ${detail.Target.Name}: ${detail.ChangeSource} (${detail.Target.Attribute})\n`;
-          });
-        }
-        
-        markdown += `- **⚠️ Warning:** This resource will be **PERMANENTLY DELETED**\n\n`;
-      });
-    }
-  } else {
-    markdown += 'No changes detected.\n';
-  }
-  
-  return markdown;
 }
 
 /**
