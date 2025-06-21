@@ -73,6 +73,8 @@ jobs:
 | `aws-region` | AWS region to connect to | Yes | `us-east-1` |
 | `stack-name` | Name of the CloudFormation stack | Yes | - |
 | `changeset-name` | Name of the changeset to report on | No | Latest changeset |
+| `github-token` | GitHub token for commenting on PRs | No | `${{ github.token }}` |
+| `comment-on-pr` | Whether to comment on PRs with the report | No | `true` |
 
 ## Outputs
 
@@ -122,6 +124,76 @@ Resources are grouped and color-coded by their impact:
 - Uses consistent spacing and formatting for better readability
 - Provides emoji indicators (⛔,🔴,🟡,🟢) for quick visual assessment
 - Highlights critical information with bright colors and bold text
+
+## PR Commenting Feature
+
+When this action runs in a pull request context, it can automatically add the changeset report as a comment on the PR.
+
+The PR commenting feature is:
+
+- **Enabled by default** - Works automatically on PR events
+- **Optional** - Can be disabled with `comment-on-pr: false`
+- **Consolidated** - Multiple stacks will be reported in a single comment
+
+### Disabling PR Comments
+
+If you want to disable PR comments, set `comment-on-pr` to `false`:
+
+```yaml
+- name: Report CloudFormation Changes
+  uses: liatrio/cfn-changeset-reporter@v1
+  with:
+    aws-region: us-east-1
+    stack-name: my-stack
+    comment-on-pr: false
+```
+
+### Comment Update Behavior
+
+When the action runs multiple times on the same PR for the same stack:
+
+- It will update any existing comments for that stack instead of creating new ones
+- This helps keep the PR thread clean and focused, especially for PRs with multiple stacks or frequent updates
+
+### 1. Add Required Permissions to Your Workflow
+
+```yaml
+name: Report CloudFormation Changes
+
+on:
+  pull_request:
+    branches: [ main ]
+
+# Add permissions to allow PR comments
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  report-changes:
+    runs-on: ubuntu-latest
+    steps:
+      # Your other steps...
+      
+      - name: Report CloudFormation Changes
+        uses: liatrio/cfn-changeset-reporter@v1
+        with:
+          aws-region: us-east-1
+          stack-name: my-stack
+          github-token: ${{ github.token }} # This enables PR commenting
+```
+
+### 2. For PRs from Forks
+
+If you need to support PRs from forks, use `pull_request_target` instead of `pull_request` with caution:
+
+```yaml
+on:
+  pull_request_target:
+    branches: [ main ]
+```
+
+**⚠️ Security Note:** When using `pull_request_target`, be careful as it runs workflows with repository token permissions using the code from the PR.
 
 ## Development
 
