@@ -75,6 +75,7 @@ jobs:
 | `changeset-name` | Name of the changeset to report on | No | Latest changeset |
 | `github-token` | GitHub token for commenting on PRs | No | `${{ github.token }}` |
 | `comment-on-pr` | Whether to comment on PRs with the report | No | `true` |
+| `delete-changeset` | Whether to delete the changeset after reporting | No | `true` |
 
 ## Outputs
 
@@ -146,6 +147,17 @@ If you want to disable PR comments, set `comment-on-pr` to `false`:
     aws-region: us-east-1
     stack-name: my-stack
     comment-on-pr: false
+```
+
+If you want to keep the changeset after reporting (not delete it), set `delete-changeset` to `false`:
+
+```yaml
+- name: Report CloudFormation Changes
+  uses: liatrio/cfn-changeset-reporter@v1
+  with:
+    aws-region: us-east-1
+    stack-name: my-stack
+    delete-changeset: false
 ```
 
 ### Comment Update Behavior

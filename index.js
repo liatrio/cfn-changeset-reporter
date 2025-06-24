@@ -9,6 +9,7 @@ async function run() {
     const awsRegion = core.getInput('aws-region', { required: true });
     const rawStackName = core.getInput('stack-name', { required: true });
     const changesetName = core.getInput('changeset-name');
+    const deleteChangeset = core.getInput('delete-changeset').toLowerCase() !== 'false';
     const context = github.context;
     // Create CloudFormation client using AWS SDK v3
     const cloudformation = new CloudFormation({
@@ -201,6 +202,22 @@ async function run() {
         core.warning("1. Add 'permissions: write-all' or 'permissions: { pull-requests: write }' to your workflow");
         core.warning("2. If running on PR from a fork, use 'pull_request_target' event instead of 'pull_request'");
         core.warning("3. Ensure GITHUB_TOKEN is passed to the action with 'github-token: ${{ github.token }}'");
+      }
+    }
+    
+    // Delete the changeset if enabled and a changeset exists
+    if (deleteChangeset && !noChangesetFound) {
+      try {
+        core.info(`Deleting changeset ${actualChangesetName} for stack ${stackName}...`);
+        
+        await cloudformation.deleteChangeSet({
+          ChangeSetName: actualChangesetName,
+          StackName: rawStackName
+        });
+        
+        core.info(`Successfully deleted changeset ${actualChangesetName}`);
+      } catch (deleteError) {
+        core.warning(`Failed to delete changeset: ${deleteError.message}`);
       }
     }
     
