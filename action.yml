@@ -21,6 +21,10 @@ inputs:
     description: 'Whether to comment on PRs with the report'
     required: false
     default: 'true'
+  delete-changeset:
+    description: 'Whether to delete the changeset after reporting'
+    required: false
+    default: 'true'
 
 runs:
   using: 'node20'
